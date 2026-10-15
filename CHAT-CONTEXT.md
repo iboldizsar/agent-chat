@@ -338,3 +338,8 @@ User requested merging 0.6.0 into main, creating milestone/0.7.0 and starting wo
 ## Milestone 0.7.0 implementation complete — 2026-10-15
 
 Continued on user “proceed”: first-run setup, bounded inherited-PATH/version check, optional utilities, existing-install bypass/review flow, Codex sign-in status, model/effort validation and fixtures are implemented. Source/installed candidate now 0.7.0. All 34 Python and 12 Lua suites pass; lint/syntax/config pass. Native setup detects OpenCode 2.0.29 and Codex 0.162.1 plus optional tools, both layouts render, Codex sign-in/seven models verified without inference. Private preference comparison passed; original OpenCode/centered view restored. Usage read 63% five-hour/10% weekly. Previous payload backup 20261015T090459744628Z; private pre-update prefs validate-0.7.0-20261015T090459Z. New UI acceptance remains pending (see milestone document); 0.6 user acceptance is not reused for 0.7. No desktop restart, unrelated settings edits, merge or publication.
+
+
+## Milestone 0.7.0 accepted — 2026-10-15
+
+User reviewed the installed candidate and said “looks good to me”. Recorded 0.7.0 acceptance in its milestone document. Automated/native evidence remains as previously recorded; no further tests or inference were run. Branch remains milestone/0.7.0; no merge or next-milestone work requested in this acceptance turn. Deferred second-laptop/restart/outage gates remain open.
