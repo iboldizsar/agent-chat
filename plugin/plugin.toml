@@ -1,0 +1,103 @@
+id = "local/agent-chat"
+name = "Agent Chat"
+version = "0.5.0"
+plugin_api = 27
+author = "local"
+license = "MIT"
+icon = "message-circle"
+description = "Desktop chat with OpenCode or Codex, with independent model selection and persistent backend history."
+dependencies = ["python3"]
+
+[[setting]]
+key = "assistant_dir"
+type = "string"
+label_key = "settings.assistant_dir.label"
+description_key = "settings.assistant_dir.description"
+default = "~/.local/share/agent-chat/assistant"
+
+[[setting]]
+key = "open_fullscreen"
+type = "bool"
+label_key = "settings.open_fullscreen.label"
+description_key = "settings.open_fullscreen.description"
+default = false
+
+[[setting]]
+key = "history_open"
+type = "bool"
+label_key = "settings.history_open.label"
+description_key = "settings.history_open.description"
+default = false
+
+[[setting]]
+key = "show_bar_status"
+type = "bool"
+label_key = "settings.show_bar_status.label"
+description_key = "settings.show_bar_status.description"
+default = true
+
+[[setting]]
+key = "background_opacity"
+type = "int"
+label_key = "settings.background_opacity.label"
+description_key = "settings.background_opacity.description"
+default = 100
+min = 0
+max = 100
+
+[[setting]]
+key = "card_opacity"
+type = "int"
+label_key = "settings.card_opacity.label"
+description_key = "settings.card_opacity.description"
+default = 100
+min = 0
+max = 100
+
+[[setting]]
+key = "notify_completion"
+type = "bool"
+label_key = "settings.notify_completion.label"
+description_key = "settings.notify_completion.description"
+default = true
+
+[[setting]]
+key = "notify_approvals"
+type = "bool"
+label_key = "settings.notify_approvals.label"
+description_key = "settings.notify_approvals.description"
+default = true
+
+[[shortcut]]
+id = "chat"
+entry = "shortcut.luau"
+
+[[service]]
+id = "service"
+entry = "service.luau"
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+width = 1000
+height = 760
+placement = "floating"
+position = "center"
+keyboard_focus = "exclusive"
+capture_keys = ["ctrl+n", "ctrl+h", "ctrl+m", "ctrl+comma", "ctrl+shift+a", "ctrl+shift+v", "ctrl+shift+x", "ctrl+shift+f", "ctrl+shift+slash", "ctrl+shift+A", "ctrl+shift+V", "ctrl+shift+X", "ctrl+shift+F", "ctrl+shift+question"]
+dismiss_on_outside_click = true
+
+[[panel]]
+id = "fullscreen"
+entry = "fullscreen.luau"
+width = "fill"
+height = "fill"
+placement = "floating"
+position = "center"
+keyboard_focus = "exclusive"
+capture_keys = ["ctrl+n", "ctrl+h", "ctrl+m", "ctrl+comma", "ctrl+shift+a", "ctrl+shift+v", "ctrl+shift+x", "ctrl+shift+f", "ctrl+shift+slash", "ctrl+shift+A", "ctrl+shift+V", "ctrl+shift+X", "ctrl+shift+F", "ctrl+shift+question"]
+
+[[widget]]
+id = "status"
+entry = "widget.luau"
+

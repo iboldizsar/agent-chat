@@ -1,0 +1,273 @@
+local C = require("./common.luau")
+local Conversations = require("./conversations.luau")
+local M = {}
+function M.new(cwd, changed)
+    local s = C.state("codex")
+    local A = { state = s }
+    local endpoint, stream = nil, nil
+    local cursor, retryAt, gen = 0, 0, 0
+    local messageIndex = {}
+    local helperDir = noctalia.expandPath("~/.local/state/agent-chat/codex")
+    local function publish() changed() end
+    local function fail(err) s.error = tostring(err); publish() end
+    local function http(path, body, cb)
+        if not endpoint then cb(nil, "Codex helper is not connected"); return end
+        C.http({ url = endpoint.url .. path, method = body and "POST" or "GET",
+            headers = { "Content-Type: application/json", "Authorization: Bearer " .. endpoint.token },
+            body = body and C.json(body) or "" }, cb)
+    end
+    local function rpc(method, params, cb)
+        http("/rpc", { method = method, params = params }, function(r, err)
+            cb(r and r.result or nil, err)
+        end)
+    end
+    local function project(item, full)
+        item = item.item or item
+        if not item.id or not item.type then return end
+        local role, text, detail = "Tool", "", ""
+        if item.type == "agentMessage" then role = "Assistant"; text = item.text or ""
+        elseif item.type == "userMessage" then
+            role = "You"
+            for _, x in ipairs(item.content or {}) do
+                if x.type == "text" then text = text .. x.text
+                elseif x.type == "localImage" then text = text .. "\n[Image]" end
+            end
+        elseif item.type == "reasoning" then return
+        else
+            text = item.type .. " · " .. (item.status or "")
+            detail = C.text(item):sub(1, 16000)
+        end
+        local value = C.message(item.id, role, text, detail)
+        if full then value.text = text end
+        return value
+    end
+    local function upsert(item)
+        local value = project(item)
+        if not value then return end
+        local row = messageIndex[value.id]
+        if row then row.text = value.text; row.details = value.details
+        else messageIndex[value.id] = value; table.insert(s.messages, value) end
+    end
+    local function pending(values)
+        local out = {}
+        for _, r in ipairs(values or {}) do
+            local p = r.params or {}
+            if p.threadId == s.session then
+                local kind = "unsupported"
+                if r.method == "item/commandExecution/requestApproval" or r.method == "item/fileChange/requestApproval" then kind = "permission"
+                elseif r.method == "item/tool/requestUserInput" then kind = "questions"
+                elseif r.method == "item/permissions/requestApproval" then kind = "additional_permissions"
+                elseif r.method == "mcpServer/elicitation/request" then kind = "elicitation" end
+                table.insert(out, { id = r.id, kind = kind, title = p.reason or p.message or r.method,
+                    text = C.text(p):sub(1, 16000), questions = p.questions, method = r.method,
+                    permissions = p.permissions, mode = p.mode, schema = p.requestedSchema, url = p.url })
+            end
+        end
+        s.requests = out
+        if #out > 0 then s.status = "waiting" elseif s.busy then s.status = "working" else s.status = "idle" end
+    end
+    local function syncPending()
+        http("/pending", nil, function(r, err)
+            if not r then fail(err); return end
+            s.usage = r.usage or s.usage; pending(r.pending); publish()
+        end)
+    end
+    local function event(e)
+        if e.seq then cursor = e.seq end
+        local p, method = e.params or {}, e.method
+        if method == "bridge/usage" then s.usage = p; publish(); return end
+        if method == "bridge/disconnected" then
+            s.connected = false; s.busy = false; s.status = "disconnected"
+            s.error = "Codex stopped. Retry reconnects; your last prompt will not be resent."
+            publish(); return
+        end
+        if method == "bridge/resync" then if s.session ~= "" then A.open(s.session) end; return end
+        if method == "serverRequest/resolved" then syncPending(); return end
+        if p.threadId ~= s.session then return end
+        if e.id ~= nil then syncPending() end
+        if method == "turn/started" then s.turn = p.turn.id; s.busy = true; s.status = "working"
+        elseif method == "turn/completed" then
+            s.turn = nil; s.busy = false; s.status = "idle"
+            if p.turn.error then s.error = C.text(p.turn.error):sub(1, 500) end
+            syncPending()
+        elseif method == "item/started" or method == "item/completed" then upsert(p.item)
+        elseif method == "item/agentMessage/delta" then
+            local row = messageIndex[p.itemId]
+            if not row then upsert({ id = p.itemId, type = "agentMessage", text = "" }); row = messageIndex[p.itemId] end
+            row.text = (row.text .. p.delta):sub(1, 200000)
+        elseif method == "error" then s.error = C.text(p.error):sub(1, 500) end
+        publish()
+    end
+    local function listen()
+        if stream then stream.stop() end
+        stream = noctalia.httpStream({ url = endpoint.url .. "/events?after=" .. cursor,
+            headers = { "Authorization: Bearer " .. endpoint.token } }, function(line)
+            if line:sub(1, 5) == "data:" then local e = C.decode(line:sub(6)); if e then event(e) end end
+        end, function()
+            stream = nil; s.connected = false; retryAt = os.time() + 3; s.status = "disconnected"; publish()
+        end)
+    end
+    function A.connect()
+        local function attach()
+            local raw = noctalia.readFile(helperDir .. "/endpoint.json")
+            endpoint = raw and C.decode(raw)
+            if not endpoint or endpoint.cwd ~= cwd or not (endpoint.url or ""):match("^http://127%.0%.0%.1:%d+$") then
+                s.status = "disconnected"; retryAt = os.time() + 2; return
+            end
+            http("/health", nil, function(r)
+                if not r then retryAt = os.time() + 2; return end
+                s.connected = true; s.status = "idle"; s.error = ""; listen(); A.discover()
+                if s.session ~= "" then A.open(s.session) end
+                publish()
+            end)
+        end
+        noctalia.runAsync({ "python3", noctalia.pluginDir() .. "/helper/codex_bridge.py", "ensure",
+            "--state-dir", helperDir, "--cwd", cwd }, function() attach() end)
+    end
+    function A.discover()
+        rpc("model/list", { includeHidden = false, limit = 100 }, function(r, err)
+            if not r then fail(err); return end
+            s.models = {}
+            local default = nil
+            for _, m in ipairs(r.data or {}) do
+                table.insert(s.models, { key = m.model, id = m.model, label = m.displayName,
+                    modalities = m.inputModalities, efforts = m.supportedReasoningEfforts, defaultEffort = m.defaultReasoningEffort })
+                if m.isDefault then default = m.model end
+            end
+            C.ensureModel(s, s.model, default); publish()
+        end)
+        rpc("account/rateLimits/read", {}, function(r) if r then s.usage = r; publish() end end)
+        A.list("")
+    end
+    function A.list(search, page)
+        local params = { limit = 40, searchTerm = search or "" }
+        if page then params.cursor = page end
+        rpc("thread/list", params, function(r, err)
+            if not r then fail(err); return end
+            if not page then s.sessions = {} end
+            for _, t in ipairs(r.data or {}) do
+                table.insert(s.sessions, { id = t.id, title = t.name or t.preview or "Untitled", updated = t.updatedAt })
+            end
+            s.historyCursor = r.nextCursor; publish()
+        end)
+    end
+    function A.export(done)
+        local id = s.session
+        Conversations.collect(function(cursor, callback)
+            local params = { threadId = id, sortDirection = "desc", limit = 50 }
+            if cursor then params.cursor = cursor end
+            rpc("thread/items/list", params, function(r, err)
+                if not r then callback(nil, nil, err); return end
+                local rows = {}
+                for _, item in ipairs(r.data or {}) do
+                    local row = project(item, true)
+                    if row then table.insert(rows, row) end
+                end
+                callback(rows, r.nextCursor)
+            end)
+        end, done)
+    end
+    function A.refresh(page)
+        if s.session == "" then return end
+        local id, currentGen = s.session, gen
+        local params = { threadId = id, sortDirection = "desc", limit = 50 }
+        if page then params.cursor = page end
+        rpc("thread/items/list", params, function(r, err)
+            if currentGen ~= gen then return end
+            if not r then fail(err); return end
+            local old = page and s.messages or {}
+            s.messages = {}; messageIndex = {}
+            for i = #(r.data or {}), 1, -1 do upsert(r.data[i]) end
+            for _, m in ipairs(old) do if not messageIndex[m.id] then messageIndex[m.id] = m; table.insert(s.messages, m) end end
+            s.messageCursor = r.nextCursor; publish()
+        end)
+    end
+    function A.open(id)
+        gen = gen + 1
+        s.turn = nil; s.busy = false
+        local currentGen = gen
+        rpc("thread/resume", { threadId = id }, function(r, err)
+            if currentGen ~= gen then return end
+            if not r then fail(err); return end
+            s.session = id; s.model = r.model; s.effort = r.reasoningEffort
+            s.title = r.thread.name or r.thread.preview or "Chat"
+            s.messages = {}; messageIndex = {}; s.error = ""
+            for _, turn in ipairs(r.thread.turns or {}) do
+                for _, item in ipairs(turn.items or {}) do upsert(item) end
+                if turn.status == "inProgress" then s.turn = turn.id; s.busy = true end
+            end
+            local status = r.thread.status or {}
+            s.busy = status.type == "active" or s.turn ~= nil
+            s.status = s.busy and "working" or "idle"
+            A.refresh(); syncPending(); publish()
+        end)
+    end
+    function A.new()
+        gen = gen + 1
+        s.session = ""; s.turn = nil; s.busy = false; s.messages = {}; messageIndex = {}; s.requests = {}
+        s.title = "New chat"; s.error = ""; s.status = s.connected and "idle" or "disconnected"; publish()
+    end
+    function A.send(text, files, done)
+        local model = C.selected(s)
+        if not model then done(false, "Choose an available model"); return end
+        if s.busy then done(false, "Wait for this turn or press Stop"); return end
+        if s.usage.blocked then done(false, "Paused near Codex usage limit"); return end
+        local input = { { type = "text", text = text } }
+        for _, file in ipairs(files or {}) do
+            if file.image then table.insert(input, { type = "localImage", path = file.path })
+            else table.insert(input, { type = "mention", name = file.name, path = file.path }) end
+        end
+        local function submit()
+            local params = { threadId = s.session, input = input, model = model.id }
+            if s.effort and s.effort ~= "" then params.effort = s.effort end
+            rpc("turn/start", params, function(r, err)
+                if not r then done(false, err); return end
+                s.turn = r.turn.id; s.busy = r.turn.status == "inProgress"; s.status = s.busy and "working" or "idle"
+                done(true); publish()
+            end)
+        end
+        if s.session ~= "" then submit(); return end
+        rpc("thread/start", { model = model.id }, function(r, err)
+            if not r then done(false, err); return end
+            s.session = r.thread.id; s.title = text:sub(1, 70)
+            rpc("thread/name/set", { threadId = s.session, name = s.title }, function() A.list("") end)
+            submit()
+        end)
+    end
+    function A.stop()
+        if not s.turn then fail("No active turn ID. Retry to recover state before stopping."); return end
+        rpc("turn/interrupt", { threadId = s.session, turnId = s.turn }, function(_, err) if err then fail(err) end end)
+    end
+    function A.rename(title)
+        rpc("thread/name/set", { threadId = s.session, name = title }, function(_, err)
+            if err then fail(err) else s.title = title; A.list(""); publish() end
+        end)
+    end
+    function A.delete(done)
+        if s.busy then fail("Stop the active turn before deleting"); return end
+        rpc("thread/delete", { threadId = s.session }, function(_, err)
+            if err then fail(err) else if done then done() end; A.new(); A.list("") end
+        end)
+    end
+    function A.reply(req, value)
+        local result
+        if req.kind == "permission" then result = { decision = value }
+        elseif req.kind == "additional_permissions" or req.kind == "elicitation" then result = value
+        else result = { answers = value } end
+        http("/reply", { id = req.id, result = result }, function(_, err)
+            if err then fail(err) else syncPending() end
+        end)
+    end
+    function A.tick()
+        if not s.connected and retryAt > 0 and os.time() >= retryAt then retryAt = os.time() + 10; A.connect() end
+    end
+    function A.close(reason)
+        if stream then stream.stop() end
+        if reason == "disable" or reason == "uninstall" then
+            noctalia.runAsync({ "python3", noctalia.pluginDir() .. "/helper/codex_bridge.py", "stop",
+                "--state-dir", helperDir, "--cwd", cwd })
+        end
+    end
+    return A
+end
+return M

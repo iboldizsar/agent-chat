@@ -1,0 +1,36 @@
+{
+  "settings": {
+    "assistant_dir": {
+      "label": "Assistant directory",
+      "description": "Dedicated chat context, separate from coding projects."
+    },
+    "open_fullscreen": {
+      "label": "Open in full screen",
+      "description": "Use full screen when opening from the bar or control center."
+    },
+    "history_open": {
+      "label": "Show history on open",
+      "description": "Expand the conversation sidebar when opening chat."
+    },
+    "show_bar_status": {
+      "label": "Show status text in the bar",
+      "description": "Display working, waiting, and connection status beside the chat icon."
+    },
+    "background_opacity": {
+      "label": "Chat background opacity (%)",
+      "description": "0 follows Noctalia\u2019s panel background; 100 adds a solid background. Enable Noctalia panel transparency to see the desktop. Text stays opaque."
+    },
+    "card_opacity": {
+      "label": "Chat cards opacity (%)",
+      "description": "Scale the background opacity of message bubbles, composer, history, tools and approval cards. Text and controls stay opaque."
+    },
+    "notify_completion": {
+      "label": "Notify when responses finish",
+      "description": "Show a generic notification when a response finishes outside the visible chat."
+    },
+    "notify_approvals": {
+      "label": "Notify when input is needed",
+      "description": "Notify about new approvals or questions outside the visible chat. Conversation content is not included."
+    }
+  }
+}
