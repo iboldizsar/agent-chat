@@ -101,4 +101,4 @@ Fixtures use fake transports and never invoke provider inference. Packaging test
 MIT licensed; see [LICENSE](LICENSE).
 
 
-The 0.6.0 candidate adds versioned/recoverable preference saves, supervised interactive helpers with liveness checks, navigation-aware dialog completion, independent connection/activity state, bounded reconnect attempts and restored-session admission gates. Corrupt or interrupted preference saves are preserved for explicit recovery; newer schemas remain read-only. Metadata diagnostics exclude backend error text. This development candidate awaits native joint validation before deployment/release packaging.
+The 0.6.0 candidate adds versioned/recoverable preference saves, supervised interactive helpers with liveness checks, navigation-aware dialog completion, independent connection/activity state, bounded reconnect attempts and restored-session admission gates. Corrupt or interrupted preference saves are preserved for explicit recovery; newer schemas remain read-only. Metadata diagnostics exclude backend error text. This development candidate is staged for native joint validation; release packaging follows acceptance.

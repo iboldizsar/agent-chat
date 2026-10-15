@@ -9,6 +9,7 @@ function M.new(cwd, changed)
     s.connection = connection.state
     local historyGeneration = 0
     local endpoint, stream = nil, nil
+    local pendingAttach, attachAt = nil, 0
     local cursor, gen = 0, 0
     local messageIndex = {}
     local helperDir = noctalia.expandPath("~/.local/state/agent-chat/codex")
@@ -134,16 +135,18 @@ function M.new(cwd, changed)
     function A.connect(manual)
         local token = connection.begin(manual ~= false)
         if not token then return end
+        pendingAttach = nil
         gen = gen + 1; s.connected = false; s.recoveryFailed = false; s.status = "connecting"
         if stream then stream.stop(); stream = nil end
         publish()
         local function attach()
-            if not connection.valid(token) then return end
+            if not connection.valid(token) then pendingAttach = nil; return end
             local raw = noctalia.readFile(helperDir .. "/endpoint.json")
             endpoint = raw and C.decode(raw)
             if not endpoint or endpoint.cwd ~= cwd or not (endpoint.url or ""):match("^http://127%.0%.0%.1:%d+$") then
-                s.connected = false; s.status = "disconnected"; connection.failure(token, true); fail("Codex helper is unavailable. Retry reconnects without resending messages."); return
+                pendingAttach = attach; attachAt = noctalia.nowMs() + 200; return
             end
+            pendingAttach = nil
             http("/health", nil, function(r)
                 if not r then connection.failure(token, true); s.status = "disconnected"; fail("Codex helper did not respond. Retry reconnects without resending messages."); return end
                 connection.success(token)
@@ -152,8 +155,17 @@ function M.new(cwd, changed)
                 publish()
             end)
         end
-        noctalia.runAsync({ "python3", noctalia.pluginDir() .. "/helper/codex_bridge.py", "ensure",
-            "--state-dir", helperDir, "--cwd", cwd }, function() attach() end)
+        local launched = noctalia.runAsync({ "python3", noctalia.pluginDir() .. "/helper/codex_bridge.py", "ensure",
+            "--state-dir", helperDir, "--cwd", cwd }, function(result)
+                if not connection.valid(token) then return end
+                if result.timedOut or (result.exitCode and result.exitCode ~= 0) then
+                    connection.failure(token, true); s.status = "disconnected"
+                    fail("Could not start the Codex helper. Check that Python and Codex are available to Noctalia.")
+                else attach() end
+            end)
+        if not launched then
+            connection.failure(token, true); s.status = "disconnected"; fail("Could not launch the Codex helper.")
+        end
     end
     function A.discover()
         rpc("model/list", { includeHidden = false, limit = 100 }, function(r, err)
@@ -316,14 +328,17 @@ function M.new(cwd, changed)
         end, true)
     end
     function A.tick()
+        if pendingAttach and noctalia.nowMs() >= attachAt then pendingAttach() end
         if connection.expired() then
             local token = connection.token(); connection.failure(token, true)
+            pendingAttach = nil
             gen = gen + 1; s.connected = false; s.status = "disconnected"
             fail("Connection timed out. Retry reconnects without resending messages.")
         end
         if connection.due() then A.connect(false) end
     end
     function A.close(reason)
+        pendingAttach = nil
         connection.close()
         if stream then stream.stop() end
         if reason == "disable" or reason == "uninstall" then

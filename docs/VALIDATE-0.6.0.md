@@ -1,6 +1,6 @@
 # Validate the 0.6.0 candidate
 
-Status: implementation candidate; live outcomes pending. Source branch: `milestone/0.6.0`.
+Status: implementation candidate staged; native migration/discovery/rendering preflight passed. User-facing outcomes pending. Source branch: `milestone/0.6.0`.
 
 ## Stage safely
 
@@ -28,3 +28,6 @@ An actual backend outage, helper kill or full Noctalia restart is a separate sch
 Record each outcome, any regression and the environment/version. If a blocker appears, keep the branch unmerged and restore the owned payload backup as needed. A 0.6.0 preference file is readable by the previous implementation, but preserve the private pre-validation copy rather than overwriting newer user edits blindly during rollback.
 
 After checks pass: record acceptance, build/audit the 0.6.0 archive and checksum from the final committed state, and merge only when requested. No publication is implied.
+
+
+Preflight recorded: both layouts render, schema-1 preferences are writable, saved state was preserved, OpenCode connected, Codex discovered seven models, and the original selected backend was restored. Continue with user-facing checks above; do not count discovery/rendering as successful generation or dialog testing.

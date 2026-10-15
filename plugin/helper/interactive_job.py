@@ -40,7 +40,13 @@ def run(command):
         value = json.loads(lines[0])
         if not isinstance(value, dict):
             return {'error': 'Desktop helper returned an invalid result.'}
-        return value
+        if value.get('cancelled') is True:
+            return {'cancelled': True}
+        if isinstance(value.get('error'), str) and value['error']:
+            return {'error': value['error'][:300]}
+        if isinstance(value.get('path'), str) and value['path']:
+            return value
+        return {'error': 'Desktop helper returned an incomplete result.'}
     except (OSError, ValueError, UnicodeError, InterruptedError):
         return {'error': 'Desktop helper could not complete the operation.'}
     finally:

@@ -18,7 +18,7 @@ class InteractiveJobTests(unittest.TestCase):
 
     def test_success_cancel_and_errors_always_have_one_result(self):
         self.assertEqual(json.loads(self.invoke('print(\'{"cancelled":true}\')')[-1]), {'cancelled': True})
-        for code in ['pass', 'raise SystemExit(9)', 'print("not json")', 'print("[]")', 'print("one\\ntwo")']:
+        for code in ['pass', 'raise SystemExit(9)', 'print("not json")', 'print("[]")', 'print("{}")', 'print(\'{"error":{}}\')', 'print("one\\ntwo")']:
             with self.subTest(code=code):
                 self.assertIn('error', json.loads(self.invoke(code)[-1]))
 

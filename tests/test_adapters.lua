@@ -190,3 +190,17 @@ o.delete(function() deleted = true end); o.new(); o.state.session = 'keep-new'
 path('/api/session/delete-old', {})
 assert(deleted and o.state.session == 'keep-new')
 print('Late rename/delete completion preserves newly selected conversations: passed')
+
+queue = {}
+local originalRead, registrationReady = noctalia.readFile, false
+noctalia.readFile = function(path)
+    if path:find('endpoint.json', 1, true) and not registrationReady then return nil end
+    return originalRead(path)
+end
+local cold = Codex.new('/assistant', function() end)
+cold.connect()
+assert(cold.state.connection.phase == 'connecting' and cold.state.error == '', 'cold helper registration must be awaited without a false failure')
+registrationReady = true; clock = clock + 201; cold.tick(); path('/health', {})
+assert(cold.state.connected)
+noctalia.readFile = originalRead
+print('Cold Codex helper registration readiness: passed')

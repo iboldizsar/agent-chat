@@ -2,7 +2,7 @@
 
 Branch: `milestone/0.6.0`  
 Baseline: 0.5.0  
-Status: implementation candidate ready for validation; not yet deployed
+Status: implementation complete; candidate installed for joint validation (acceptance pending)
 
 This is the first milestone from [the 1.0 plan](V1-PLAN.md). Keep existing UI decisions and private state. No live backend inference, desktop restart, migration of the real preferences file, release rebuild or deployment is needed for its initial implementation slices. Manifest/helper metadata now identify the 0.6.0 candidate; release packaging follows validation. Existing 0.5.0 release archives are unchanged.
 
@@ -21,7 +21,7 @@ This is the first milestone from [the 1.0 plan](V1-PLAN.md). Keep existing UI de
 - [x] Introduce bounded reconnect/backoff behavior without prompt replay.
 - [x] Expand metadata-only diagnostics for operations and connection state.
 - [x] Complete milestone-wide adapter/fault tests.
-- [ ] Complete joint native UI/backend validation after implementation, as requested.
+- [ ] Complete user-facing dialog/generation/approval validation after implementation, as requested.
 
 ## Capability inventory
 
@@ -96,6 +96,20 @@ Activity is represented separately from connection state, including submitting, 
 
 ## Joint validation next
 
-The user requested completing implementation before live checks. The candidate remains separate from the working installation until validation staging. Follow [VALIDATE-0.6.0.md](VALIDATE-0.6.0.md). Tests run during development are offline fixtures, fake processes and isolated installation checks, not real provider inference.
+The user requested completing implementation before live checks. The candidate was staged after implementation/offline checks and confirmation that both backends were idle. Follow [VALIDATE-0.6.0.md](VALIDATE-0.6.0.md). Tests run during development are offline fixtures, fake processes and isolated installation checks, not real provider inference.
 
 Do not merge this branch or label the release fully validated until the native checks have outcomes. Native process/compositor behavior is not proven by fixture tests.
+
+
+## Native preflight outcomes
+
+- Candidate 0.6.0 installed with previous payload backup `~/.local/state/agent-chat/install-backups/20261015T084236550981Z/plugin/`.
+- Private pre-migration preferences saved at `~/.local/state/agent-chat/install-backups/validate-0.6.0-20261015T084236Z/preferences.json` (never commit or include in reports).
+- Schema 1 is writable; no pending preference file remains. Compared preserved drafts, pins, backend choices and export destination with the private pre-migration copy without printing contents.
+- OpenCode connected normally. Direct Codex discovery connected and reported seven models without inference; selected backend restored afterward.
+- Both panel layouts report successful rendering; Noctalia configuration validates.
+- Cold Codex startup now waits for registration readiness within the existing bounded connection attempt, rather than treating the detached helper's startup race as an immediate error. Targeted readiness fixture passes.
+- All 30 Python tests and 10 Lua suites, syntax checks and Noctalia lint pass; the final helper-result/startup refinements also pass their targeted suites.
+- Read-only account usage reported 54% of the five-hour window and 8% weekly during preflight. No model prompt was sent.
+
+The remaining validation is physical picker/Save As, keyboard/UI, generation/Stop and permission behavior under this candidate. No full Noctalia restart, shared-service shutdown, destructive fault injection on real preferences, archive rebuild, merge or publication was performed.
