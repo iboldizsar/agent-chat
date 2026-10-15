@@ -21,6 +21,7 @@ local sendingBackend = nil
 local jobs = require("./lib/jobs.luau").new()
 local navigation = 0
 local replies = {}
+local deletions = { opencode = {}, codex = {} }
 local activity = require("./lib/activity.luau").new()
 local handle
 local notificationTarget
@@ -81,7 +82,7 @@ local function publish()
     end
     noctalia.state.set("chat_snapshot", { current = s, backend = backend,
         background = background, sending = sending, assistantDir = cwd, pins = prefs.pins[backend] or {},
-        notificationTarget = notificationTarget,
+        notificationTarget = notificationTarget, deleting = deletions[backend],
         setup = { active = showSetup, completed = prefs.setupCompleted == true, runtime = setup.state },
         interactiveJob = jobs.pending(), modelChoices = (prefs.modelChoices or {})[backend],
         preferences = { warning = preferenceStore.warning, canReset = preferenceStore.canReset } })
@@ -261,9 +262,27 @@ handle = function(req)
     elseif action == "older" then a.refresh(s.messageCursor)
     elseif action == "stop" then s.stopping = true; a.stop()
     elseif action == "rename" and s.session ~= "" then a.rename(req.value)
-    elseif action == "delete" and s.session ~= "" then
-        local name, id = backend, s.session
-        a.delete(function() if prefs.pins[name] then prefs.pins[name][id] = nil end end)
+    elseif action == "delete" then
+        local name, id = backend, req.value or s.session
+        if type(id) ~= "string" or id == "" or deletions[name][id] then return end
+        if s.busy or s.recovering or #s.requests > 0 or sending or not s.connected then
+            s.error = "Finish the active turn before deleting a chat."; changed(); return
+        end
+        local known = id == s.session or (prefs.pins[name] or {})[id] ~= nil
+        for _, session in ipairs(s.sessions) do if session.id == id then known = true end end
+        if not known then return end
+        deletions[name][id] = true
+        local finished = false
+        a.delete(function(ok, selected)
+            if finished then return end
+            finished = true; deletions[name][id] = nil
+            if ok then
+                if prefs.pins[name] then prefs.pins[name][id] = nil end
+                prefs.drafts[name .. ":" .. id] = nil
+                if selected then s.draft = prefs.drafts[name .. ":new"] or ""; s.attachments = {}; s.attachmentNotice = nil end
+            end
+            changed()
+        end, id)
     elseif action == "reply" then
         if s.recovering or not s.connected then s.error = "Wait for pending requests to be recovered before replying."; changed(); return end
         for _, r in ipairs(s.requests) do

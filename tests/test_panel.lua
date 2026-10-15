@@ -150,10 +150,21 @@ for _, filename in ipairs({ "panel.luau", "fullscreen.luau" }) do
     assert(findControl(lastTree, 'attachment-preview'))
     assert(click(lastTree, 'preview-remove') and commands[#commands].action == 'remove_attachment')
     snapshot.current.attachments = {}
+    snapshot.current.connected = true
+    snapshot.current.sessions = { { id = 'row', title = 'Saved chat' } }
     press('ctrl+h')
+    assert(findControl(lastTree, 'history-delete-row').props.enabled)
+    local beforeDelete = #commands
+    assert(click(lastTree, 'history-delete-row'))
+    assert(hasText('Delete “Saved chat”?') and #commands == beforeDelete)
+    assert(click(lastTree, 'history-delete-cancel') and #commands == beforeDelete)
+    assert(click(lastTree, 'history-delete-row'))
+    assert(click(lastTree, 'history-delete-confirm'))
+    assert(commands[#commands].action == 'delete' and commands[#commands].value == 'row')
     assert(findControl(lastTree, 'history-pinned'))
     assert(click(lastTree, 'history-pinned') and hasText('No pinned chats'))
     press('ctrl+h')
+    snapshot.current.connected = false
     snapshot.setup = { active = true, completed = false, runtime = {
         checking = false, backends = { codex = { status = "missing" }, opencode = { status = "available", version = "2.0.29" } }, tools = {} } }
     env.onOpen()

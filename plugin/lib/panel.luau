@@ -13,6 +13,7 @@ local historyBackend = nil
 local previewPath = nil
 local isOpen = false
 local expanded, answers = {}, {}
+local historyDelete = nil
 local armedDelete = false
 local armedRecovery = false
 local renameText = ""
@@ -224,7 +225,7 @@ render = function()
     if snapshot.setup and snapshot.setup.active and view ~= "models" then view = "setup"
     elseif view == "setup" then view = "chat" end
     local s = snapshot.current
-    if historyBackend ~= s.backend then search = s.historyQuery or ""; onlyPinned = false; historyBackend = s.backend end
+    if historyBackend ~= s.backend then search = s.historyQuery or ""; onlyPinned = false; historyDelete = nil; historyBackend = s.backend end
     local model = C.selected(s)
     local idle = not s.busy and not snapshot.sending and not s.recovering and #s.requests == 0
     local backendName = s.backend == "codex" and "Codex" or "OpenCode"
@@ -621,6 +622,18 @@ render = function()
                 button("All", function() onlyPinned = false; render() end, { selected = not onlyPinned, key = "history-all" }),
                 button("Pinned", function() onlyPinned = true; render() end, { selected = onlyPinned, key = "history-pinned" }),
             }))
+            if historyDelete then
+                local target = historyDelete
+                table.insert(history, ui.column({ gap = 6, padding = 8, radius = 8, border = "error/0.3", borderWidth = 1 }, {
+                    label("Delete “" .. target.title .. "”?", { fontSize = 12, fontWeight = "bold", maxLines = 3 }),
+                    label("Permanently removes this chat and any child sessions.", { fontSize = 11, color = "on_surface_variant", maxLines = 3 }),
+                    ui.row({ gap = 6 }, {
+                        button("Delete", function() command("delete", target.id); historyDelete = nil; render() end,
+                            { key = "history-delete-confirm", variant = "destructive", enabled = idle and s.connected and not (snapshot.deleting or {})[target.id] }),
+                        button("Cancel", function() historyDelete = nil; render() end, { key = "history-delete-cancel" }),
+                    }),
+                }))
+            end
             local query = s.historyQuery or ""
             local groups = Conversations.groups(s.sessions, snapshot.pins, query, onlyPinned, noctalia.nowMs() / 1000,
                 function(timestamp) return noctalia.formatTime and noctalia.formatTime("%Y-%m-%d", timestamp) or "" end)
@@ -636,6 +649,8 @@ render = function()
                                     tooltip = (s.openFailures or {})[session.id] and "Could not open this chat. Check the service and retry, or unpin it." or (session.unverified and "Saved pin outside loaded history. Open to check availability." or session.title) }),
                             icon("pin", session.pinned and "Unpin chat" or "Pin chat", function() command("pin", session.id) end,
                                 { selected = session.pinned == true }),
+                            icon("trash", "Delete chat", function() historyDelete = { id = session.id, title = session.title }; render() end,
+                                { key = "history-delete-" .. session.id, enabled = idle and s.connected and not (snapshot.deleting or {})[session.id] }),
                         }))
                     end
                 end
@@ -714,6 +729,7 @@ local function opened(context)
     isOpen = true
     snapshot = noctalia.state.get("chat_snapshot")
     armedDelete = false
+    historyDelete = nil
     armedRecovery = false
     historyOpen = noctalia.getConfig("history_open") == true
     if historyOpen then command("history", snapshot and snapshot.current.historyQuery or "") end

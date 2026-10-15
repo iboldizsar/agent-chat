@@ -254,3 +254,23 @@ cold.refreshUsage()
 respond(function(r) return fixtures[r.body] and fixtures[r.body].method == 'account/rateLimits/read' end, { error = 'offline' }, 503)
 assert(not cold.state.usageChecking and cold.state.usage.stale)
 print('Usage refresh is serialized and retains stale evidence on failure: passed')
+
+for _, backend in ipairs({ 'codex', 'opencode' }) do
+    queue = {}
+    local adapter = backend == 'codex' and cold or o
+    adapter.state.session = 'keep-current'; adapter.state.busy = false; adapter.state.draft = 'keep draft'
+    local success, cleared
+    adapter.delete(function(ok, selected) success = ok; cleared = selected end, 'delete-history-row')
+    if backend == 'codex' then
+        local request = rpc('thread/delete', {})
+        assert(fixtures[request.body].params.threadId == 'delete-history-row')
+    else path('/api/session/delete-history-row', {}) end
+    assert(success and not cleared and adapter.state.session == 'keep-current' and adapter.state.draft == 'keep draft')
+    queue = {}
+    adapter.delete(function(ok) success = ok end, 'cannot-delete')
+    if backend == 'codex' then
+        respond(function(r) return fixtures[r.body] and fixtures[r.body].method == 'thread/delete' end, { error = 'denied' }, 400)
+    else path('/api/session/cannot-delete', { error = 'denied' }, 400) end
+    assert(success == false and adapter.state.historyError and adapter.state.session == 'keep-current')
+end
+print('History row deletion targets its ID without switching or clearing the current chat: passed')

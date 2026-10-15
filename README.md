@@ -79,7 +79,7 @@ The portable [assistant context](docs/assistant-AGENTS.md) assumes no particular
 ```sh
 python3 scripts/package.py
 cd dist
-sha256sum -c agent-chat-0.9.0.tar.gz.sha256
+sha256sum -c agent-chat-0.9.1.tar.gz.sha256
 ```
 
 The builder uses the explicit [release file allowlist](PACKAGE-FILES.txt), normalizes archive metadata, and emits a reproducible `.tar.gz` plus SHA-256 checksum. It excludes local conversation/handoff records and implementation notes as well as runtime state. It does not publish or commit anything. Copy the archive and checksum to the target laptop, then follow the included installation guide.

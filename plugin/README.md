@@ -42,7 +42,7 @@ noctalia msg panel-toggle iboldizsar/agent-chat:fullscreen
 
 Fresh installations offer setup: check tools, connect a service and choose a discovered model. No test prompt is sent. Review setup later from Chat options → Setup & dependencies. The default assistant instructions are created only when missing; custom directories must already contain an `AGENTS.md` file.
 
-Choose OpenCode/Codex in the title dropdown and a model in the main header. Favorites and five recent explicit choices are separate per backend. Agent/reasoning selection is in Chat options. History has title search, date groups and pins; it remains owned by the selected backend.
+Choose OpenCode/Codex in the title dropdown and a model in the main header. Favorites and five recent explicit choices are separate per backend. Agent/reasoning selection is in Chat options. History has title search, date groups and pins; it remains owned by the selected backend. Each row has Pin and Delete buttons. Delete asks for confirmation naming that chat and does not require opening it.
 
 Enter sends; Shift+Enter inserts a newline. Esc hides without stopping work; Stop cancels a response. Ctrl+N starts a chat, Ctrl+H toggles history, Ctrl+M chooses a model, Ctrl+, opens options, Ctrl+Shift+A attaches a file, Ctrl+Shift+V pastes an image, Ctrl+Shift+X stops, Ctrl+Shift+F changes layout, and Ctrl+Shift+/ shows help. These shortcuts are panel-local. No compositor shortcut is registered automatically.
 

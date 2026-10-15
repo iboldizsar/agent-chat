@@ -219,3 +219,8 @@ Finished and staged attachment previews, file metadata, screenshot instructions/
 ## Milestone 0.9.0 public-ID candidate — 2026-10-15
 
 Runtime changes and public-ID migration are installed: iboldizsar/agent-chat 0.9.0/API32. Latest released Noctalia 5.2.1 supports API32; API33 is unreleased, and the old API27 minimum overlooked newer image tooltips. Corrected source/builder/dependency guidance accordingly. Notifications defer blocked navigation and deduplicate approval IDs durably; usage has freshness/timestamp/manual refresh; export failure fixtures protect originals. Store installs initialize the portable context safely. Migration preserves old caches and all settings/private selections; native preflight and both layouts pass. 56 Python tests/14 Lua suites pass. No provider inference or push. User-facing candidate acceptance and submission thumbnail remain pending. See MILESTONE-0.9.0.md for exact backup/rollback paths and current checklist.
+
+
+## 0.9.1 history-row deletion — 2026-10-15
+
+Added a trash button beside Pin on every history row and a named inline confirmation. Both adapters accept an explicit target ID; deleting another row leaves the selected chat/draft intact. Duplicate deletion requests are suppressed, active/offline states are guarded, and pins/drafts are removed only on success. Focused adapter/service/panel and packaging checks pass; installed candidate 0.9.1 renders both layouts. Previous payload: ~/.local/state/agent-chat/install-backups/20261015T120223306202Z/plugin/. No actual user chat was deleted during verification.

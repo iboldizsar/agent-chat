@@ -389,3 +389,8 @@ Applied migration while both backends were idle: copied old private state withou
 ## Milestone 0.9.0 runtime accepted — 2026-10-15
 
 User confirmed “looks good to me” after public-ID migration, launch controls and usage-refresh checks. Recorded installed 0.9.0 runtime acceptance. The community thumbnail and deferred 1.0 lifecycle/second-laptop/scaling gates remain open; acceptance is not a claim that those were executed. Branch remains milestone/0.9.0. No further tests, inference, installation, merge or push.
+
+
+## History row deletion — 2026-10-15
+
+User requested Delete next to Pin in chat history. Implemented named inline confirmation and target-ID deletion in both adapters without opening the target or disturbing another current chat. Service guards active/offline/recovering states, suppresses duplicate submissions, and removes origin pins/drafts only after successful deletion. Failed deletions retain them. Added target/failure/deduplication and both-layout confirmation tests; focused suites, 11 packaging tests, syntax/lint pass. Installed 0.9.1 while idle; prior payload backup 20261015T120223306202Z. Both native layouts render and config validates; rebuilt the 0.9.1 archive. No real conversation was deleted for testing, no inference or push.

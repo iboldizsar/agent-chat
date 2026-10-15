@@ -328,13 +328,18 @@ function M.new(cwd, changed)
             if err then fail(err) else s.title = title; A.list(s.historyQuery or ""); publish() end
         end)
     end
-    function A.delete(done)
+    function A.delete(done, target)
         if s.busy then fail("Stop the active turn before deleting"); return end
-        local id, version = s.session, generation
-        request("DELETE", sessionPath(), nil, function(_, err)
-            if err then if id == s.session and version == generation then fail(err) end; return end
-            if done then done() end
-            if id == s.session and version == generation then A.new() end
+        local id, version = target or s.session, generation
+        request("DELETE", "/api/session/" .. C.encode(id), nil, function(_, err)
+            if err then
+                s.historyError = "Could not delete this chat. Refresh history and try again."
+                if id == s.session and version == generation then fail(err) else publish() end
+                if done then done(false) end; return
+            end
+            local selected = id == s.session and version == generation
+            if selected then A.new() end
+            if done then done(true, selected) end
             A.list(s.historyQuery or "")
         end)
     end

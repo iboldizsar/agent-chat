@@ -5,6 +5,7 @@ local function clone(value)
     local out = {}; for k, v in pairs(value) do out[k] = clone(v) end; return out
 end
 local api, watch, snapshot, captureDone, exportDone, saveDone = {}, nil, nil, nil, nil, nil
+local deleteDone, deleteCalls = nil, 0
 local notifyAction
 local openDone
 local runtimeDone
@@ -39,6 +40,7 @@ local function adapter(name)
     states[name] = s
     return { state = s, connect = function() s.connected = true end, tick = function() end,
         export = function(cb) exportDone = cb end, close = function() end,
+        delete = function(cb, id) deleteCalls = deleteCalls + 1; deleteDone = cb end,
         open = function(id, cb)
             s.recovering = true
             openDone = function(ok) if ok then s.session = id end; s.recovering = false; if cb then cb(ok) end end
@@ -186,3 +188,15 @@ states.opencode.busy = false
 action('notification_open'); openDone(true); tick()
 assert(not snapshot.notificationTarget and states.opencode.session == 'from-notification')
 print('Busy notification navigation preserves current work and opens the intended chat later: passed')
+
+states.opencode.recovering = false; states.opencode.busy = false
+states.opencode.sessions = { { id = 'remove', title = 'Remove' } }
+action('pin', 'remove')
+local priorSession, priorDraft = states.opencode.session, states.opencode.draft
+action('delete', 'remove'); action('delete', 'remove')
+assert(deleteCalls == 1 and snapshot.deleting.remove)
+deleteDone(false); tick()
+assert(snapshot.pins.remove and not snapshot.deleting.remove)
+action('delete', 'remove'); deleteDone(true, false); tick()
+assert(not snapshot.pins.remove and states.opencode.session == priorSession and states.opencode.draft == priorDraft)
+print('History deletion deduplicates requests, keeps failed pins and preserves the current draft: passed')

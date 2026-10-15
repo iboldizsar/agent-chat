@@ -28,9 +28,9 @@ On other compositors, chat, file selection and export remain usable; use your sc
 Copy both the archive and its `.sha256` file to the other laptop. From that folder:
 
 ```sh
-sha256sum -c agent-chat-0.9.0.tar.gz.sha256
-tar -xzf agent-chat-0.9.0.tar.gz
-cd agent-chat-0.9.0
+sha256sum -c agent-chat-0.9.1.tar.gz.sha256
+tar -xzf agent-chat-0.9.1.tar.gz
+cd agent-chat-0.9.1
 python3 scripts/doctor.py
 python3 scripts/install.py
 python3 scripts/install.py --apply
