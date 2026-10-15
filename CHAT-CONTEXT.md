@@ -343,3 +343,8 @@ Continued on user “proceed”: first-run setup, bounded inherited-PATH/version
 ## Milestone 0.7.0 accepted — 2026-10-15
 
 User reviewed the installed candidate and said “looks good to me”. Recorded 0.7.0 acceptance in its milestone document. Automated/native evidence remains as previously recorded; no further tests or inference were run. Branch remains milestone/0.7.0; no merge or next-milestone work requested in this acceptance turn. Deferred second-laptop/restart/outage gates remain open.
+
+
+## Milestone 0.8.0 started — 2026-10-15
+
+User requested committing/merging 0.7.0 and creating milestone/0.8.0; main fast-forwarded to 6931235 and the new branch was created. On “start working at 0.8.0”, implemented the first attachment/history slice: native scaled image thumbnails/in-panel preview/removal, size/MIME/capability feedback, screenshot Copy instructions/cancel notices, local calendar history groups, All/Pinned filters, consistent title search, history loading/error states, normalized timestamps and guarded pagination. All 35 Python tests and 12 Lua suites pass; syntax/lint/diff checks pass. No inference, deployment or package/version update; installed/source manifest remain 0.7.0. See docs/MILESTONE-0.8.0.md for remaining capture inspection, invalid-input/pin cases and native acceptance.

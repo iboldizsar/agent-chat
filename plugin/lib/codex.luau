@@ -185,27 +185,40 @@ function M.new(cwd, changed)
             C.ensureModel(s, s.model, default); publish()
         end)
         rpc("account/rateLimits/read", {}, function(r) if r then s.usage = r; publish() end end)
-        A.list("")
+        A.list(s.historyQuery or "")
     end
     function A.list(search, page)
         if not page then historyGeneration = historyGeneration + 1 end
+        if s.historyLoading and page then return end
+        s.historyLoading = true; s.historyError = nil; s.historyPendingCursor = page
+        if not page then
+            s.historyQuery = search or ""; s.sessions = {}; s.historyCursor = nil
+            s.historyCursors = {}
+        end
+        publish()
         local currentHistory = historyGeneration
         local params = { limit = 40, searchTerm = search or "" }
         if page then params.cursor = page end
         rpc("thread/list", params, function(r, err)
             if currentHistory ~= historyGeneration then return end
-            if not r then fail(err); return end
+            s.historyLoading = false; s.historyPendingCursor = nil
+            if not r then s.historyError = "Could not load history. Try again when connected."; publish(); return end
             if not page then s.sessions = {} end
             local seen = {}
             for _, session in ipairs(s.sessions) do seen[session.id] = true end
             for _, t in ipairs(r.data or {}) do
                 if not seen[t.id] then
-                    table.insert(s.sessions, { id = t.id, title = t.name or t.preview or "Untitled", updated = t.updatedAt })
+                    table.insert(s.sessions, { id = t.id, title = t.name or t.preview or "Untitled", updated = Conversations.seconds(t.updatedAt) })
                     seen[t.id] = true
                 end
             end
-            s.historyCursor = r.nextCursor; publish()
-        end)
+            local nextCursor = r.nextCursor
+            if page then s.historyCursors[page] = true end
+            if nextCursor and s.historyCursors[nextCursor] then
+                s.historyCursor = nil; s.historyError = "History returned a repeated page. Refresh to try again."
+            else s.historyCursor = nextCursor end
+            publish()
+        end, true)
     end
     function A.export(done)
         local id = s.session
@@ -294,7 +307,7 @@ function M.new(cwd, changed)
         rpc("thread/start", { model = model.id }, function(r, err)
             if not r then done(false, err); return end
             s.session = r.thread.id; s.title = text:sub(1, 70)
-            rpc("thread/name/set", { threadId = s.session, name = s.title }, function() A.list("") end)
+            rpc("thread/name/set", { threadId = s.session, name = s.title }, function() A.list(s.historyQuery or "") end)
             submit()
         end)
     end
@@ -305,8 +318,8 @@ function M.new(cwd, changed)
     function A.rename(title)
         local id, version = s.session, gen
         rpc("thread/name/set", { threadId = id, name = title }, function(_, err)
-            if id ~= s.session or version ~= gen then if not err then A.list("") end; return end
-            if err then fail(err) else s.title = title; A.list(""); publish() end
+            if id ~= s.session or version ~= gen then if not err then A.list(s.historyQuery or "") end; return end
+            if err then fail(err) else s.title = title; A.list(s.historyQuery or ""); publish() end
         end)
     end
     function A.delete(done)
@@ -316,7 +329,7 @@ function M.new(cwd, changed)
             if err then if id == s.session and version == gen then fail(err) end; return end
             if done then done() end
             if id == s.session and version == gen then A.new() end
-            A.list("")
+            A.list(s.historyQuery or "")
         end)
     end
     function A.reply(req, value, done)

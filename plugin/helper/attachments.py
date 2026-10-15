@@ -65,7 +65,7 @@ def capture(mode, directory):
     if mode == 'screenshot':
         data = screenshot_png()
         if data is None:
-            return {'cancelled': True}
+            return {'cancelled': True, 'reason': 'no-new-image'}
         name, mime = 'Screenshot.png', 'image/png'
     elif mode == 'paste':
         offered = subprocess.check_output(['wl-paste', '--list-types'], timeout=5).decode().splitlines()
@@ -75,7 +75,7 @@ def capture(mode, directory):
         data = subprocess.check_output(['wl-paste', '--no-newline', '--type', mime], timeout=5)
         name = 'Pasted image' + mimetypes.guess_extension(mime)
     else:
-        r = subprocess.run(['zenity', '--file-selection', '--title=Attach a file'], capture_output=True)
+        r = subprocess.run(['zenity', '--file-selection', '--title=Attach a file (up to 8 MiB)'], capture_output=True)
         if r.returncode == 1:
             return {'cancelled': True}
         if r.returncode != 0:

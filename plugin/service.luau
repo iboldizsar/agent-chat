@@ -160,7 +160,7 @@ handle = function(req)
         prefs.drafts[key(s)] = s.draft
         if action == "new" then a.new() else a.open(req.value) end
         s.draft = action == "new" and (prefs.drafts[s.backend .. ":new"] or "") or (prefs.drafts[s.backend .. ":" .. req.value] or "")
-        s.attachments = {}
+        s.attachments = {}; s.attachmentNotice = nil
     elseif action == "pin" then
         local id = req.value
         if type(id) ~= "string" or id == "" then return end
@@ -245,13 +245,14 @@ handle = function(req)
                 break
             end
         end
-    elseif action == "remove_attachment" then table.remove(s.attachments, tonumber(req.value))
+    elseif action == "remove_attachment" then table.remove(s.attachments, tonumber(req.value)); s.attachmentNotice = nil
     elseif action == "attach" then
         local job = jobs.begin("attachment", { backend = backend, session = s.session, navigation = navigation })
         if not job then s.error = "Finish the open desktop dialog before starting another operation."; changed(); return end
         local returnPanel = (req.value == "pick" or req.value == "screenshot") and req.returnPanel or nil
         if returnPanel ~= "local/agent-chat:panel" and returnPanel ~= "local/agent-chat:fullscreen" then returnPanel = nil end
         local name = backend
+        s.attachmentNotice = nil
         local function restorePanel()
             if returnPanel and jobs.current(job, backend, current().state.session, navigation) then
                 noctalia.runAsync({ "noctalia", "msg", "panel-open", returnPanel })
@@ -264,8 +265,11 @@ handle = function(req)
             local x = adapters[name].state
             if not f then x.error = result.timedOut and "Attachment picker timed out; try again." or "Could not capture attachment"
             elseif f.error then x.error = f.error
-            elseif not f.cancelled then
-                if jobs.matches(job, backend, current().state.session) then table.insert(x.attachments, f) end
+            elseif f.cancelled then
+                x.attachmentNotice = req.value == "screenshot" and "No new screenshot attached. Choose Copy and close the editor, or use Paste image." or "File selection canceled."
+            else
+                x.attachmentNotice = "Attached " .. tostring(f.name)
+                table.insert(x.attachments, f)
             end
             changed()
             restorePanel()

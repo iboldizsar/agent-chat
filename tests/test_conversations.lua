@@ -18,3 +18,23 @@ M.collect(function(_, cb) cb({}, 'repeat') end, function(rows, err) assert(not r
 assert(errorText:find('repeated'), 'cursor loop must fail rather than produce a partial export')
 M.collect(function(_, cb) cb(nil, nil, 'network failure') end, function(rows, err) assert(not rows and err == 'network failure') end)
 print('Pinned history, full export pagination, escaping and failure handling: passed')
+
+-- Map deliberately uneven epoch distances to calendar dates (DST/midnight).
+local dates = { [100] = '2026-03-30', [99] = '2026-03-29', [98] = '2026-03-28', [97] = '2026-03-23', [96] = '2026-03-22', [95] = '2026-03-31' }
+local groups = M.groups({
+    { id = 'today', title = 'Today', updated = 100 },
+    { id = 'yesterday', title = 'Yesterday', updated = 99 },
+    { id = 'week', title = 'Week', updated = 98 },
+    { id = 'edge', title = 'Edge', updated = 97 },
+    { id = 'older', title = 'Older', updated = 96 },
+    { id = 'missing', title = 'Missing' },
+    { id = 'future', title = 'Future', updated = 95 },
+}, { saved = { title = 'Saved' } }, '', false, 100, function(t) return dates[t] end)
+assert(groups[1].rows[1].unverified and groups[2].rows[1].id == 'today')
+assert(groups[3].rows[1].id == 'yesterday' and #groups[4].rows == 2 and #groups[5].rows == 1 and #groups[6].rows == 2)
+assert(M.seconds(1800000000000) == 1800000000 and M.seconds(1800000000) == 1800000000)
+assert(not M.seconds(0) and not M.seconds(0/0) and not M.seconds(math.huge))
+local rows = M.history({ { id = 'p', title = 'New title', updated = 99 }, { id = 'x', title = 'No match' } }, { p = { title = 'Old title' } }, 'new', true)
+assert(#rows == 1 and rows[1].title == 'New title' and not rows[1].unverified)
+assert(#M.history({ { id = 'x', title = 'Other' } }, {}, 'absent') == 0)
+print('Local calendar grouping, unknown dates, normalized units and pinned title filters: passed')

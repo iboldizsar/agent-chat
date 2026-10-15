@@ -137,6 +137,20 @@ for _, filename in ipairs({ "panel.luau", "fullscreen.luau" }) do
     count = #commands; press("ctrl+shift+x"); assert(#commands == count, "idle stop is a no-op")
     press("ctrl+shift+f")
     assert(closes > 0 and toggles[#toggles] == (filename == "fullscreen.luau" and "local/agent-chat:panel" or "local/agent-chat:fullscreen"))
+    snapshot.current.attachments = { { name = '日本語 image.png', path = '/private/image.png', image = true, size = 2048 } }
+    snapshot.current.models = { { key = 'text', label = 'Text', modalities = { 'text' } } }
+    snapshot.current.model = 'text'
+    env.onOpen()
+    assert(contains(lastTree, function(n) return n.type == 'image' and n.props.path == '/private/image.png' end))
+    assert(hasText('Choose a model that accepts images') and hasText('2 KiB'))
+    assert(click(lastTree, 'preview-1'))
+    assert(findControl(lastTree, 'attachment-preview'))
+    assert(click(lastTree, 'preview-remove') and commands[#commands].action == 'remove_attachment')
+    snapshot.current.attachments = {}
+    press('ctrl+h')
+    assert(findControl(lastTree, 'history-pinned'))
+    assert(click(lastTree, 'history-pinned') and hasText('No pinned chats'))
+    press('ctrl+h')
     snapshot.setup = { active = true, completed = false, runtime = {
         checking = false, backends = { codex = { status = "missing" }, opencode = { status = "available", version = "2.0.29" } }, tools = {} } }
     env.onOpen()

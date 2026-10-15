@@ -90,6 +90,7 @@ action('attach', 'pick', { returnPanel = 'local/agent-chat:fullscreen' })
 local completed = captureDone
 completed(result({ cancelled = true })); completed(result({ cancelled = true })); tick()
 assert(opens == 1 and not snapshot.interactiveJob, 'cancellation restores the layout once')
+assert(states.codex.attachmentNotice == 'File selection canceled.')
 action('attach', 'pick', { returnPanel = 'local/agent-chat:panel' })
 captureDone(result({ error = 'helper failed' })); tick()
 assert(not snapshot.interactiveJob and states.codex.error == 'helper failed')

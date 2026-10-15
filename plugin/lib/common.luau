@@ -16,6 +16,7 @@ function M.http(request, cb)
 end
 function M.state(backend)
     return { backend = backend, models = {}, agents = {}, sessions = {}, messages = {}, requests = {},
+        historyCursors = {}, historyLoading = false, historyQuery = "",
         status = "disconnected", error = "", model = "", agent = "", session = "", title = "New chat",
         usage = { known = false }, connected = false, busy = false, draft = "", attachments = {} }
 end

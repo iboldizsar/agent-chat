@@ -53,7 +53,7 @@ function M.new(cwd, changed)
             end)
         end)
         A.loadAgents()
-        A.list("")
+        A.list(s.historyQuery or "")
     end
     function A.loadAgents()
         agentGeneration = agentGeneration + 1
@@ -108,25 +108,37 @@ function M.new(cwd, changed)
     end
     function A.list(search, cursor)
         if not cursor then historyGeneration = historyGeneration + 1 end
+        if s.historyLoading and cursor then return end
+        s.historyLoading = true; s.historyError = nil; s.historyPendingCursor = cursor
+        if not cursor then
+            s.historyQuery = search or ""; s.sessions = {}; s.historyCursor = nil
+            s.historyCursors = {}
+        end
+        publish()
         local currentHistory = historyGeneration
         local path = "/api/session?directory=" .. C.encode(cwd) .. "&limit=40&parentID=null"
         if search and search ~= "" then path = path .. "&search=" .. C.encode(search) end
         if cursor then path = path .. "&cursor=" .. C.encode(cursor) end
         request("GET", path, nil, function(r, err)
             if currentHistory ~= historyGeneration then return end
-            if not r then fail(err); return end
+            s.historyLoading = false; s.historyPendingCursor = nil
+            if not r then s.historyError = "Could not load history. Try again when connected."; publish(); return end
             if not cursor then s.sessions = {} end
             local seen = {}
             for _, session in ipairs(s.sessions) do seen[session.id] = true end
             for _, x in ipairs(r.data or {}) do
                 if not seen[x.id] then
-                    table.insert(s.sessions, { id = x.id, title = x.title or "Untitled", updated = (x.time or {}).updated })
+                    table.insert(s.sessions, { id = x.id, title = x.title or "Untitled", updated = Conversations.seconds((x.time or {}).updated) })
                     seen[x.id] = true
                 end
             end
-            s.historyCursor = r.cursor and r.cursor.next or nil
+            local nextCursor = r.cursor and r.cursor.next or nil
+            if cursor then s.historyCursors[cursor] = true end
+            if nextCursor and s.historyCursors[nextCursor] then
+                s.historyCursor = nil; s.historyError = "History returned a repeated page. Refresh to try again."
+            else s.historyCursor = nextCursor end
             publish()
-        end)
+        end, true)
     end
     local function messages(data, full)
         local out = {}
@@ -282,7 +294,7 @@ function M.new(cwd, changed)
         if s.agent ~= "" then body.agent = s.agent end
         request("POST", "/api/session", body, function(r, err)
             if not r then done(false, err); return end
-            s.session = r.data.id; s.title = r.data.title or "Chat"; submit(); A.list("")
+            s.session = r.data.id; s.title = r.data.title or "Chat"; submit(); A.list(s.historyQuery or "")
         end)
     end
     function A.chooseAgent(agent)
@@ -301,8 +313,8 @@ function M.new(cwd, changed)
     function A.rename(title)
         local id, version = s.session, generation
         request("PATCH", sessionPath(), { title = title }, function(_, err)
-            if id ~= s.session or version ~= generation then if not err then A.list("") end; return end
-            if err then fail(err) else s.title = title; A.list(""); publish() end
+            if id ~= s.session or version ~= generation then if not err then A.list(s.historyQuery or "") end; return end
+            if err then fail(err) else s.title = title; A.list(s.historyQuery or ""); publish() end
         end)
     end
     function A.delete(done)
@@ -312,7 +324,7 @@ function M.new(cwd, changed)
             if err then if id == s.session and version == generation then fail(err) end; return end
             if done then done() end
             if id == s.session and version == generation then A.new() end
-            A.list("")
+            A.list(s.historyQuery or "")
         end)
     end
     function A.reply(req, value, done)

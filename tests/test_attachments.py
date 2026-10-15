@@ -15,6 +15,10 @@ class AttachmentTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, patch.object(attachments.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, b'', b'')):
             self.assertEqual(attachments.capture('pick', directory), {'cancelled': True})
 
+    def test_screenshot_cancel_reports_no_new_image(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(attachments, 'screenshot_png', return_value=None):
+            self.assertEqual(attachments.capture('screenshot', directory), {'cancelled': True, 'reason': 'no-new-image'})
+
     def test_picker_failure_is_not_silently_cancelled(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(attachments.subprocess, 'run', return_value=subprocess.CompletedProcess([], 255, b'', b'failed')):
             with self.assertRaisesRegex(ValueError, 'File picker could not open'):

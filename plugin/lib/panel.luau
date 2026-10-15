@@ -6,6 +6,9 @@ local Models = require("./models.luau")
 local snapshot = noctalia.state.get("chat_snapshot")
 local view, search, modelFilter = "chat", "", ""
 local historyOpen = false
+local onlyPinned = false
+local historyBackend = nil
+local previewPath = nil
 local isOpen = false
 local expanded, answers = {}, {}
 local armedDelete = false
@@ -187,8 +190,9 @@ end
 local function toggleHelp()
     view = view == "shortcuts" and "chat" or "shortcuts"; render()
 end
-local function attachFile(mode)
+local function attachFile(mode, confirmed)
     if snapshot and snapshot.interactiveJob then return end
+    if mode == "screenshot" and not confirmed then view = "capture"; render(); return end
     -- Release the layer-shell keyboard grab before opening an external window.
     panel.close()
     command("attach", mode or "pick", { returnPanel = fullscreen and "local/agent-chat:fullscreen" or "local/agent-chat:panel" })
@@ -216,6 +220,7 @@ render = function()
     if snapshot.setup and snapshot.setup.active and view ~= "models" then view = "setup"
     elseif view == "setup" then view = "chat" end
     local s = snapshot.current
+    if historyBackend ~= s.backend then search = s.historyQuery or ""; onlyPinned = false; historyBackend = s.backend end
     local model = C.selected(s)
     local idle = not s.busy and not snapshot.sending and not s.recovering and #s.requests == 0
     local backendName = s.backend == "codex" and "Codex" or "OpenCode"
@@ -265,7 +270,35 @@ render = function()
     if (s.usage or {}).blocked or s.limitPaused then
         table.insert(nodes, label("Usage limit pause · new messages are on hold", { color = "error", fontSize = 12 }))
     end
-    if view == "setup" then
+    if view == "preview" then
+        local attachment
+        for _, candidate in ipairs(s.attachments) do if candidate.path == previewPath then attachment = candidate end end
+        if attachment then
+            table.insert(nodes, ui.row({ gap = 8, align = "center" }, {
+                button("Back to chat", function() view = "chat"; previewPath = nil; render() end),
+                label(attachment.name, { flexGrow = 1, maxLines = 2 }),
+                button("Remove", function()
+                    for index, candidate in ipairs(s.attachments) do if candidate.path == previewPath then command("remove_attachment", index); break end end
+                    previewPath = nil; view = "chat"; render()
+                end, { key = "preview-remove" }),
+            }))
+            table.insert(nodes, ui.image({ key = "attachment-preview", path = attachment.path, fit = "contain", flexGrow = 1,
+                tooltip = attachment.name, radius = 10 }))
+        else
+            table.insert(nodes, label("This attachment is no longer in the draft.", { color = "on_surface_variant" }))
+            table.insert(nodes, button("Back to chat", function() view = "chat"; previewPath = nil; render() end))
+        end
+    elseif view == "capture" then
+        table.insert(nodes, ui.column({ flexGrow = 1, gap = 14, justify = "center" }, {
+            label("Attach a screenshot", { fontSize = 22, fontWeight = "bold" }),
+            label("Select a region with Noctalia, annotate if needed, then choose Copy and close the editor. Saving to a file alone does not attach it.",
+                { maxLines = 4, color = "on_surface_variant" }),
+            label("If you cancel or copy an identical image, nothing new is attached. Paste image is available afterward. Maximum attachment size: 8 MiB.",
+                { maxLines = 4, fontSize = 12, color = "on_surface_variant" }),
+            button("Start capture", function() view = "chat"; attachFile("screenshot", true) end, { key = "start-capture", variant = "primary" }),
+            button("Back to chat", function() view = "chat"; render() end),
+        }))
+    elseif view == "setup" then
         local runtime = snapshot.setup.runtime or {}
         local rows = {
             label(snapshot.setup.completed and "Review your setup" or "Welcome to Agent Chat", { fontSize = 23, fontWeight = "bold" }),
@@ -565,33 +598,77 @@ render = function()
                 ui.input({ key = "history-search", value = search, placeholder = "Search titles · Enter", onChange = function(v) search = v end,
                     onSubmit = function() command("history", search) end }),
             }
-            local sessions = Conversations.history(s.sessions, snapshot.pins, search)
-            for _, session in ipairs(sessions) do
-                table.insert(history, ui.row({ gap = 2, align = "center" }, {
-                    button(session.title:sub(1, 42), function() command("open", session.id); armedDelete = false end,
-                        { key = session.id, selected = session.id == s.session, enabled = idle, contentAlign = "start", flexGrow = 1 }),
-                    icon("pin", session.pinned and "Unpin chat" or "Pin chat", function() command("pin", session.id) end,
-                        { selected = session.pinned == true }),
-                }))
+            table.insert(history, ui.row({ gap = 6 }, {
+                button("All", function() onlyPinned = false; render() end, { selected = not onlyPinned, key = "history-all" }),
+                button("Pinned", function() onlyPinned = true; render() end, { selected = onlyPinned, key = "history-pinned" }),
+            }))
+            local query = s.historyQuery or ""
+            local groups = Conversations.groups(s.sessions, snapshot.pins, query, onlyPinned, noctalia.nowMs() / 1000,
+                function(timestamp) return noctalia.formatTime and noctalia.formatTime("%Y-%m-%d", timestamp) or "" end)
+            local count = 0
+            for _, group in ipairs(groups) do
+                if #group.rows > 0 then
+                    table.insert(history, label(group.title, { fontSize = 11, fontWeight = "bold", color = "on_surface_variant" }))
+                    for _, session in ipairs(group.rows) do
+                        count = count + 1
+                        table.insert(history, ui.row({ gap = 2, align = "center" }, {
+                            button(session.title:sub(1, 42), function() command("open", session.id); armedDelete = false end,
+                                { key = session.id, selected = session.id == s.session, enabled = idle, contentAlign = "start", flexGrow = 1,
+                                    tooltip = session.unverified and "Saved pin outside loaded history. Open to check availability." or session.title }),
+                            icon("pin", session.pinned and "Unpin chat" or "Pin chat", function() command("pin", session.id) end,
+                                { selected = session.pinned == true }),
+                        }))
+                    end
+                end
             end
-            if #sessions == 0 then table.insert(history, label("No saved chats yet", { fontSize = 12, color = "on_surface_variant" })) end
-            if s.historyCursor then table.insert(history, button("More chats", function() command("history", search, { cursor = s.historyCursor }) end)) end
-            body = { ui.scroll({ key = "history", width = 220, gap = 6, padding = 10, fill = cardFill("surface_variant", 0.2), radius = 12 }, history), transcript }
+            if s.historyLoading then
+                table.insert(history, label("Loading chats…", { fontSize = 12, color = "on_surface_variant" }))
+            elseif s.historyError then
+                table.insert(history, label(s.historyError, { fontSize = 12, color = "error", maxLines = 3 }))
+                table.insert(history, button("Retry history", function() command("history", query) end, { enabled = s.connected }))
+            elseif count == 0 then
+                table.insert(history, label(query ~= "" and "No matching titles" or (onlyPinned and "No pinned chats" or "No saved chats yet"),
+                    { fontSize = 12, color = "on_surface_variant" }))
+            end
+            if not onlyPinned and s.historyCursor then
+                table.insert(history, button("More chats", function() command("history", query, { cursor = s.historyCursor }) end,
+                    { enabled = not s.historyLoading }))
+            end
+            body = { ui.scroll({ key = "history-" .. s.backend .. query .. tostring(onlyPinned), width = 220, gap = 6, padding = 10, fill = cardFill("surface_variant", 0.2), radius = 12 }, history), transcript }
         end
         table.insert(nodes, ui.row({ key = "chat-body", flexGrow = 1, gap = 20 }, body))
         local composer = {}
         local chips = {}
+        local acceptsImages = false
+        for _, modality in ipairs(model and model.modalities or {}) do if modality == "image" then acceptsImages = true end end
         for i, f in ipairs(s.attachments) do
-            table.insert(chips, button(f.name .. " ×", function() command("remove_attachment", i) end,
-                { variant = "secondary", tooltip = f.image and "Image input" or "Local file reference" }))
+            local size = (tonumber(f.size) or 0) >= 1048576 and string.format("%.1f MiB", f.size / 1048576) or string.format("%.0f KiB", (tonumber(f.size) or 0) / 1024)
+            local description = f.image and (acceptsImages and "Image input" or "Choose a model that accepts images") or ((f.mime or "File") .. " · Local file reference; read by the assistant’s tools")
+            local content = {
+                ui.row({ gap = 8, align = "center" }, {
+                    button(f.name, function() if f.image then previewPath = f.path; view = "preview"; render() end end,
+                        { key = "preview-" .. tostring(i), enabled = f.image, contentAlign = "start", flexGrow = 1,
+                            tooltip = f.image and "Preview image" or f.mime, glyph = f.image and "photo" or "file" }),
+                    label(size, { fontSize = 11, color = "on_surface_variant" }),
+                    icon("x", "Remove " .. f.name, function() command("remove_attachment", i) end),
+                }),
+                label(description, { fontSize = 11, color = f.image and not acceptsImages and "error" or "on_surface_variant", maxLines = 2 }),
+            }
+            if f.image then table.insert(content, 1, ui.image({ key = "thumbnail-" .. tostring(i), path = f.path, width = 76, height = 56,
+                fit = "contain", radius = 6, tooltip = "Preview " .. f.name,
+                onClick = function() previewPath = f.path; view = "preview"; render() end })) end
+            table.insert(chips, ui.column({ gap = 4, padding = 8, radius = 8, fill = cardFill("surface_variant", 0.4) }, content))
         end
-        if #chips > 0 then table.insert(composer, ui.row({ gap = 6 }, chips)) end
+        if #chips > 0 then table.insert(composer, ui.scroll({ key = "draft-attachments", height = 150, gap = 6 }, chips)) end
+        if s.attachmentNotice then
+            table.insert(composer, label(s.attachmentNotice, { fontSize = 11, color = "on_surface_variant", maxLines = 2 }))
+        end
         table.insert(composer, ui.input({ key = "composer-" .. s.backend .. s.session .. tostring(s.composerRevision or 0),
             value = s.draft, placeholder = "Ask anything…", multiline = true, frameVisible = false,
             submitOnEnter = true, focus = true, height = 68, onChange = function(v) command("draft", v) end,
             onSubmit = function(v) command("send", v) end }))
         local toolbar = {
-            icon("paperclip", "Attach file · Ctrl+Shift+A", function() attachFile() end),
+            icon("paperclip", "Attach file · up to 8 MiB · Ctrl+Shift+A", function() attachFile() end),
             icon("screenshot", "Capture screenshot with Noctalia (copy when finished)", function() attachFile("screenshot") end),
             icon("photo-plus", "Paste image · Ctrl+Shift+V", function() command("attach", "paste") end),
             label("Enter to send · Shift+Enter for a new line", { fontSize = 11, color = "on_surface_variant" }),

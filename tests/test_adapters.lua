@@ -34,8 +34,8 @@ end
 local function rpc(method, result)
     return respond(function(r) return fixtures[r.body] and fixtures[r.body].method == method end, { result = result })
 end
-local function path(tail, result)
-    return respond(function(r) return r.url:find(tail, 1, true) ~= nil end, result)
+local function path(tail, result, status)
+    return respond(function(r) return r.url:find(tail, 1, true) ~= nil end, result, status)
 end
 local Codex = assert(loadfile(root .. "/plugin/lib/codex.luau"))()
 local a = Codex.new("/assistant", function() end)
@@ -206,3 +206,26 @@ registrationReady = true; clock = clock + 201; cold.tick(); path('/health', {})
 assert(cold.state.connected)
 noctalia.readFile = originalRead
 print('Cold Codex helper registration readiness: passed')
+
+for _, backend in ipairs({ 'codex', 'opencode' }) do
+    queue = {}
+    local adapter = backend == 'codex' and cold or o
+    local function historyReply(data, nextCursor, status)
+        if backend == 'codex' then
+            if status then respond(function(r) return fixtures[r.body] and fixtures[r.body].method == 'thread/list' end, { error = 'offline' }, status)
+            else rpc('thread/list', { data = data, nextCursor = nextCursor }) end
+        else path('/api/session?', status and { error = 'offline' } or { data = data, cursor = { next = nextCursor } }, status) end
+    end
+    adapter.list('new query')
+    assert(adapter.state.historyLoading and #adapter.state.sessions == 0)
+    local row = backend == 'codex' and { id = 'one', name = 'One', updatedAt = 1800000000 } or { id = 'one', title = 'One', time = { updated = 1800000000000 } }
+    historyReply({ row }, 'next')
+    assert(not adapter.state.historyLoading and adapter.state.sessions[1].updated == 1800000000)
+    adapter.list('new query', 'next'); adapter.list('new query', 'next')
+    assert(#queue == 1, 'pagination is serialized')
+    historyReply({ row }, 'next')
+    assert(#adapter.state.sessions == 1 and not adapter.state.historyCursor and adapter.state.historyError)
+    adapter.list('failing query'); historyReply(nil, nil, 503)
+    assert(not adapter.state.historyLoading and adapter.state.historyError and #adapter.state.sessions == 0)
+end
+print('Both adapters expose loading/errors, normalize dates and bound duplicate pagination: passed')
