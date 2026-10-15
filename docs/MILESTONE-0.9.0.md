@@ -6,7 +6,7 @@ Status: first slice complete; implementation remains in progress
 
 ## User decisions
 
-The user asked to assess the community submission requirements, then authorized this milestone. Publishing identity is **iboldizsar/agent-chat**, confirmed by the user through https://github.com/iboldizsar. No publication or submission is authorized. Preserve the installed `local/agent-chat` until a concrete migration has been tested.
+The user asked to assess the community submission requirements, then authorized this milestone. Publishing identity is **iboldizsar/agent-chat**, confirmed by the user through https://github.com/iboldizsar. The user created and pushed the GitHub repository; origin now uses SSH. No community-store PR or further agent push is authorized. Preserve the installed `local/agent-chat` until a concrete migration has been tested.
 
 ## First implemented slice
 
@@ -36,3 +36,8 @@ Reported usage rose from 77% to 79% five-hour, weekly 12%. No model prompt, loca
 - Final candidate version/package update and native validation after implementation, followed by user acceptance.
 
 Deferred restart/outage, second-laptop and other 1.0 release gates remain open. Existing accepted 0.8.0 installation is unchanged.
+
+
+## Private-state migration slice — 2026-10-15
+
+Prepared scripts/migrate.py with preview-by-default copying between local/agent-chat and iboldizsar/agent-chat private data namespaces. It preserves all old cache paths and source state, applies private destination permissions, refuses existing destinations/symlinks/special files/pending writes, checks for concurrent source changes and never enables a plugin or edits host settings. Five focused fixture tests pass, including concurrent destination creation. See MIGRATION.md for preconditions, integration work and rollback. No live migration or deployment was run. Live settings/placement/shortcut migration and host API compatibility remain pending.

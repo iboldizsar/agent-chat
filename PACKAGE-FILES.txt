@@ -37,6 +37,7 @@ plugin/widget.luau
 scripts/community.py
 scripts/doctor.py
 scripts/install.py
+scripts/migrate.py
 scripts/package.py
 tests/fake_codex.py
 tests/test_activity.lua
@@ -51,6 +52,7 @@ tests/test_conversations.lua
 tests/test_export_file.py
 tests/test_interactive_job.py
 tests/test_jobs.lua
+tests/test_migration.py
 tests/test_models.lua
 tests/test_notifications.lua
 tests/test_packaging.py

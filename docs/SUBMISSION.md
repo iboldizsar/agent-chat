@@ -22,4 +22,4 @@ Remaining submission items include a real 960×540 thumbnail.webp, visual eviden
 - Spawned commands: `python3`, `codex app-server --stdio`, version-only backend checks, `noctalia` IPC, `chmod`, and optional `zenity`, `wl-paste`, `hyprctl`, `notify-send`, `xdg-open`. Stream supervision owns and terminates only its interactive child process group. Shared OpenCode/unrelated Codex instances are preserved.
 - No automatic compositor keybindings or shell-layout changes. Capture automation uses existing Noctalia tools and Hyprland layers; other desktops retain Paste image.
 
-The final PR must match the final source inventory and explain ownership/lifecycle accurately. No PR or remote repository has been created.
+The final PR must match the final source inventory and explain ownership/lifecycle accurately. No community PR has been created. The user created and pushed https://github.com/iboldizsar/agent-chat; origin uses git@github.com:iboldizsar/agent-chat.git. This is separate from community-store submission.
