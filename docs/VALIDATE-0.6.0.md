@@ -1,6 +1,6 @@
 # Validate the 0.6.0 candidate
 
-Status: implementation candidate staged; native migration/discovery/rendering preflight passed. User-facing outcomes pending. Source branch: `milestone/0.6.0`.
+Status: checklist complete by user confirmation on 2026-10-15. Automated and native preflight evidence is recorded separately. Merged into `main` at the user’s request; development continues on `milestone/0.7.0`.
 
 ## Stage safely
 
@@ -31,3 +31,8 @@ After checks pass: record acceptance, build/audit the 0.6.0 archive and checksum
 
 
 Preflight recorded: both layouts render, schema-1 preferences are writable, saved state was preserved, OpenCode connected, Codex discovered seven models, and the original selected backend was restored. Continue with user-facing checks above; do not count discovery/rendering as successful generation or dialog testing.
+
+
+## User acceptance — 2026-10-15
+
+The user instructed marking the remaining checks as done. Checklist items 1–10 are recorded as passed by user confirmation; no additional agent-run checks or inference were performed to make this update. Separately scheduled backend outage/helper termination/full desktop restart scenarios have not been claimed as executed.

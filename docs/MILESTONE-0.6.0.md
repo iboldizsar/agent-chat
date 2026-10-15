@@ -2,7 +2,7 @@
 
 Branch: `milestone/0.6.0`  
 Baseline: 0.5.0  
-Status: implementation complete; candidate installed for joint validation (acceptance pending)
+Status: implementation complete; checklist accepted by user confirmation on 2026-10-15; merged into main
 
 This is the first milestone from [the 1.0 plan](V1-PLAN.md). Keep existing UI decisions and private state. No live backend inference, desktop restart, migration of the real preferences file, release rebuild or deployment is needed for its initial implementation slices. Manifest/helper metadata now identify the 0.6.0 candidate; release packaging follows validation. Existing 0.5.0 release archives are unchanged.
 
@@ -21,7 +21,7 @@ This is the first milestone from [the 1.0 plan](V1-PLAN.md). Keep existing UI de
 - [x] Introduce bounded reconnect/backoff behavior without prompt replay.
 - [x] Expand metadata-only diagnostics for operations and connection state.
 - [x] Complete milestone-wide adapter/fault tests.
-- [ ] Complete user-facing dialog/generation/approval validation after implementation, as requested.
+- [x] Complete user-facing dialog/generation/approval validation (user confirmation, 2026-10-15).
 
 ## Capability inventory
 
@@ -113,3 +113,8 @@ Do not merge this branch or label the release fully validated until the native c
 - Read-only account usage reported 54% of the five-hour window and 8% weekly during preflight. No model prompt was sent.
 
 The remaining validation is physical picker/Save As, keyboard/UI, generation/Stop and permission behavior under this candidate. No full Noctalia restart, shared-service shutdown, destructive fault injection on real preferences, archive rebuild, merge or publication was performed.
+
+
+## Acceptance update — 2026-10-15
+
+The user requested merging into main and starting milestone/0.7.0, then instructed marking the remaining checklist checks as done. This supersedes pending-acceptance/merge restrictions above. Native restart/outage exercises remain separately scheduled; no new agent-run validation or release archive rebuild is implied.
