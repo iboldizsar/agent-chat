@@ -373,3 +373,14 @@ User created the public GitHub repo; added origin, switched it to SSH at user re
 ## History refresh fix — 2026-10-15
 
 User reported history not saved. Read-only backend checks found one saved Codex chat while the plugin cached zero; an explicit history refresh populated the list. OpenCode assistant listing returned zero with/without parent filter, so no OpenCode data-loss claim was made. Opening history (including history-on-open) now refreshes backend-owned listings. Both-layout panel fixtures and syntax passed; installed only the focused panel module with backup ~/.local/state/agent-chat/install-backups/history-refresh-20261015T105906Z/panel.luau. No inference or transcript changes. Usage reached 84% five-hour/13% weekly; paused after this focused correction. Other 0.9 work remains pending.
+
+
+## 0.9.0 resumed after usage reset; public migration installed — 2026-10-15
+
+The five-hour window reset to 0% (weekly 13%); resumed authorized 0.9 work. Added bounded persistent approval notification deduplication, once-only actions and deferred intended-chat navigation; current/stale/unavailable usage with timestamp/manual refresh; and export failure coverage. Source now uses canonical iboldizsar/agent-chat, version 0.9.0. The installer guards legacy state; migration includes a safe settings transform.
+
+The user questioned API 27 versus 33. Verified latest release 5.2.1, matching running/installed binary, host maximum 32 and documented API 33 unreleased. API 27 was the old minimum and is too low for newer image tooltips. Source and community builder now require 32; no host upgrade needed.
+
+Applied migration while both backends were idle: copied old private state without deleting caches, installed/enabled the public ID, migrated settings/placements and changed only the existing Super+/ command in the controlling Stow Lua binding. Private comparisons confirm all other settings/binding content and drafts/pins/favorites/selections/export folder/setup retained. Both native layouts render, config validates, and Hyprland reports no errors. Codex discovers seven models and one saved chat; OpenCode discovers 99 models. Restored Codex. Full private backup: ~/.local/state/agent-chat/install-backups/public-id-20261015T115006Z/; installer backup: 20261015T115007015287Z; settings backup: identity-settings-20261015T115014610259Z. Never commit private backups.
+
+56 Python tests and 14 Lua suites pass. Upstream community validator against dist/community-0.9.0-api32 reports only missing thumbnail. Prepared docs/SUBMISSION-PR.md as a draft; the actual generator-produced 960×540 asset and physical candidate focus/usage/migration acceptance remain pending. Built the 0.9.0 archive/checksum. No model prompts, desktop restart, PR, push or merge. Codex usage options are left open for review.

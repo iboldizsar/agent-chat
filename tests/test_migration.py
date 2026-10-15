@@ -72,3 +72,35 @@ class MigrationTests(unittest.TestCase):
         with patch.object(migration, 'snapshot', side_effect=concurrent_target), self.assertRaises(FileExistsError):
             migration.migrate(self.home, apply=True)
         self.assertEqual((self.target / 'keep').read_text(), 'new installation')
+
+    def test_settings_copy_preserves_comments_other_plugins_and_old_cache_paths(self):
+        settings = self.home / 'settings.toml'
+        original = '''# user customization
+[plugins]
+enabled = ["local/agent-chat", "other/plugin"]
+[plugin_settings."local/agent-chat"]
+assistant_dir = "/my/context"
+retained_path = "/state/local/agent-chat/attachments/image.png"
+[widget.agent_chat]
+type = "local/agent-chat:status"
+'''
+        settings.write_text(original)
+        self.assertEqual(migration.settings_copy(settings)['replacements'], 3)
+        self.assertEqual(settings.read_text(), original)
+        backup = self.home / 'backup'
+        migration.settings_copy(settings, backup, apply=True)
+        self.assertEqual((backup / 'noctalia-settings.toml').read_text(), original)
+        updated = settings.read_text()
+        self.assertIn('# user customization', updated)
+        self.assertIn('"other/plugin"', updated)
+        self.assertIn('"iboldizsar/agent-chat:status"', updated)
+        self.assertIn('/state/local/agent-chat/attachments/image.png', updated)
+        self.assertFalse(migration.settings_copy(settings, backup, apply=True)['applied'])
+
+    def test_conflicting_public_settings_are_not_overwritten(self):
+        settings = self.home / 'settings.toml'
+        original = '[plugin_settings."local/agent-chat"]\nx=1\n[plugin_settings."iboldizsar/agent-chat"]\nx=2\n'
+        settings.write_text(original)
+        with self.assertRaises(ValueError):
+            migration.settings_copy(settings, self.home / 'backup', apply=True)
+        self.assertEqual(settings.read_text(), original)

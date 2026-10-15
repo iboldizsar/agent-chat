@@ -1,6 +1,7 @@
 --!nonstrict
 local C = require("./lib/common.luau")
 local Models = require("./lib/models.luau")
+local Usage = require("./lib/usage.luau")
 local OpenCode = require("./lib/opencode.luau")
 local Codex = require("./lib/codex.luau")
 local Conversations = require("./lib/conversations.luau")
@@ -22,11 +23,21 @@ local navigation = 0
 local replies = {}
 local activity = require("./lib/activity.luau").new()
 local handle
-local notifyState = require("./lib/notifications.luau").new(function(name, session)
-    handle({ action = "backend", value = name })
-    if adapters[name].state.session ~= session then handle({ action = "open", value = session }) end
-    noctalia.runAsync({ "noctalia", "msg", "panel-open", "local/agent-chat:panel" })
-end)
+local notificationTarget
+local function openNotification(name, session)
+    local target = adapters[name].state
+    if target.session ~= session and (target.busy or target.recovering or #target.requests > 0 or sending) then
+        notificationTarget = { backend = name, session = session }
+        dirty = true
+    else
+        notificationTarget = nil
+        handle({ action = "backend", value = name })
+        if target.session ~= session then handle({ action = "open", value = session }) end
+    end
+    noctalia.runAsync({ "noctalia", "msg", "panel-open", "iboldizsar/agent-chat:panel" })
+end
+prefs.notificationSeen = prefs.notificationSeen or {}
+local notifyState = require("./lib/notifications.luau").new(openNotification, prefs.notificationSeen, function() dirty = true end)
 local connected = {}
 local visible = false
 local wasBusy = {}
@@ -55,6 +66,7 @@ local function publish()
     for name, a in pairs(adapters) do
         local x = a.state
         x.activity = activity(name, x, sending and name == sendingBackend)
+        x.usageState = Usage.status(x.usage, noctalia.nowMs() / 1000, x.connected)
         prefs.pins[name] = prefs.pins[name] or {}
         for _, session in ipairs(x.sessions) do
             local pin = prefs.pins[name][session.id]
@@ -69,6 +81,7 @@ local function publish()
     end
     noctalia.state.set("chat_snapshot", { current = s, backend = backend,
         background = background, sending = sending, assistantDir = cwd, pins = prefs.pins[backend] or {},
+        notificationTarget = notificationTarget,
         setup = { active = showSetup, completed = prefs.setupCompleted == true, runtime = setup.state },
         interactiveJob = jobs.pending(), modelChoices = (prefs.modelChoices or {})[backend],
         preferences = { warning = preferenceStore.warning, canReset = preferenceStore.canReset } })
@@ -104,7 +117,10 @@ handle = function(req)
     if type(req) ~= "table" then return end
     local a, s = current()
     local action = req.action
-    if action == "setup_open" then
+    if action == "notification_open" then
+        if notificationTarget then openNotification(notificationTarget.backend, notificationTarget.session) end
+    elseif action == "notification_dismiss" then notificationTarget = nil
+    elseif action == "setup_open" then
         showSetup = true; setup.check()
     elseif action == "setup_check" then
         setup.check()
@@ -132,6 +148,7 @@ handle = function(req)
         if backend ~= req.value then navigation = navigation + 1 end
         backend = req.value
         if not connected[backend] then connect(backend) end
+    elseif action == "usage" then if a.refreshUsage then a.refreshUsage() end
     elseif action == "retry" then setupChosen = true; connect(backend)
     elseif action == "draft" then s.draft = req.value or ""
     elseif action == "favorite_model" then
@@ -191,7 +208,7 @@ handle = function(req)
         if not job then s.error = "Finish the open desktop dialog before starting another operation."; changed(); return end
         local title, name = s.title, backend
         local returnPanel = req.returnPanel
-        if returnPanel ~= "local/agent-chat:panel" and returnPanel ~= "local/agent-chat:fullscreen" then returnPanel = nil end
+        if returnPanel ~= "iboldizsar/agent-chat:panel" and returnPanel ~= "iboldizsar/agent-chat:fullscreen" then returnPanel = nil end
         local function restorePanel()
             if returnPanel and jobs.current(job, backend, current().state.session, navigation) then
                 noctalia.runAsync({ "noctalia", "msg", "panel-open", returnPanel })
@@ -199,7 +216,11 @@ handle = function(req)
         end
         s.exporting = true; s.exportPath = nil; s.error = ""
         a.export(function(messages, err)
-            if not messages then jobs.finish(job); s.exporting = false; s.error = "Export failed: " .. tostring(err); changed(); restorePanel(); return end
+            if not messages then
+                jobs.finish(job); s.exporting = false
+                if jobs.matches(job, backend, current().state.session) then s.error = "Export failed: " .. tostring(err) end
+                changed(); restorePanel(); return
+            end
             if not jobs.current(job, backend, current().state.session, navigation) then
                 jobs.finish(job); s.exporting = false; changed(); return
             end
@@ -263,7 +284,7 @@ handle = function(req)
         local job = jobs.begin("attachment", { backend = backend, session = s.session, navigation = navigation })
         if not job then s.error = "Finish the open desktop dialog before starting another operation."; changed(); return end
         local returnPanel = (req.value == "pick" or req.value == "screenshot") and req.returnPanel or nil
-        if returnPanel ~= "local/agent-chat:panel" and returnPanel ~= "local/agent-chat:fullscreen" then returnPanel = nil end
+        if returnPanel ~= "iboldizsar/agent-chat:panel" and returnPanel ~= "iboldizsar/agent-chat:fullscreen" then returnPanel = nil end
         local name = backend
         s.attachmentNotice = nil
         local function restorePanel()
@@ -333,7 +354,10 @@ function update()
     context.tick()
     setup.tick()
     Attachments.tick()
-    for _, a in pairs(adapters) do a.tick() end
+    for _, a in pairs(adapters) do
+        a.tick()
+        if a.state.usageState ~= Usage.status(a.state.usage, noctalia.nowMs() / 1000, a.state.connected) then dirty = true end
+    end
     if dirty and noctalia.nowMs() >= savingAt then
         dirty = false; savingAt = noctalia.nowMs() + 100; publish()
     end
@@ -368,6 +392,7 @@ function onIpc(event, payload)
     if event ~= "diagnose" then return end
     local manifest = noctalia.readFile(noctalia.pluginDir() .. "/plugin.toml") or ""
     local result = { pluginVersion = manifest:match('version%s*=%s*"([^"]+)"') or "unknown", backend = backend, assistantReady = noctalia.fileExists(cwd .. "/AGENTS.md"),
+        pluginApi = tonumber(manifest:match("plugin_api%s*=%s*(%d+)")),
         preferenceSchema = prefs.schema_version, preferencesWritable = preferenceStore.writable, interactiveJob = jobs.pending(),
         setupCompleted = prefs.setupCompleted == true, setupActive = showSetup, setupChecking = setup.state.checking,
         runtimeBackends = setup.state.backends, optionalTools = setup.state.tools, setupCheckFailed = setup.state.error ~= nil }
@@ -377,6 +402,7 @@ function onIpc(event, payload)
             agents = #s.agents, messages = #s.messages, requests = #s.requests, attachments = #s.attachments,
             historyLoading = s.historyLoading == true, historyFailed = s.historyError ~= nil, sessions = #s.sessions,
             connectionPhase = s.connection and s.connection.phase, retryAttempt = s.connection and s.connection.attempt,
+            usageState = s.usageState, usageChecking = s.usageChecking == true,
             activity = s.activity, authentication = s.authentication, recovering = s.recovering == true, recoveryFailed = s.recoveryFailed == true, hasError = (s.error or "") ~= "" }
     end
     noctalia.writeFile(dataDir .. "/diagnostic.json", C.json(result))

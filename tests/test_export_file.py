@@ -48,3 +48,28 @@ class SaveExportTests(unittest.TestCase):
         with patch.object(export_file.subprocess, 'run', return_value=subprocess.CompletedProcess([], 255, b'')):
             with self.assertRaisesRegex(ValueError, 'Save As'):
                 export_file.save('/not-read', '/tmp/export.md')
+
+    def test_failed_replace_keeps_original_and_removes_staging(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / 'source.md'
+            source.write_text('new transcript')
+            target = Path(directory) / 'existing.md'
+            target.write_text('keep original')
+            with patch.object(export_file.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, bytes(target) + b'\n')), patch.object(export_file.os, 'replace', side_effect=PermissionError('denied')):
+                with self.assertRaises(PermissionError):
+                    export_file.save(source, str(target))
+            self.assertEqual(target.read_text(), 'keep original')
+            self.assertFalse(list(Path(directory).glob('.agent-chat-*')))
+
+    def test_missing_source_and_missing_destination_folder_do_not_save(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / 'export.md'
+            with patch.object(export_file.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, bytes(target) + b'\n')):
+                with self.assertRaises(FileNotFoundError):
+                    export_file.save(str(Path(directory) / 'missing.md'), str(target))
+            self.assertFalse(target.exists())
+            self.assertFalse(list(Path(directory).glob('.agent-chat-*')))
+            target = Path(directory) / 'missing-folder/export.md'
+            with patch.object(export_file.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, bytes(target) + b'\n')):
+                with self.assertRaisesRegex(ValueError, 'existing folder'):
+                    export_file.save('/unread', str(target))

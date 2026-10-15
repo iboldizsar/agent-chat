@@ -1,8 +1,8 @@
-id = "local/agent-chat"
+id = "iboldizsar/agent-chat"
 name = "Agent Chat"
-version = "0.8.0"
-plugin_api = 27
-author = "local"
+version = "0.9.0"
+plugin_api = 32
+author = "iboldizsar"
 license = "MIT"
 icon = "message-circle"
 description = "Desktop chat with OpenCode or Codex, with independent model selection and persistent backend history."

@@ -4,7 +4,7 @@ This is a private local plugin package, not a published Noctalia catalog entry. 
 
 ## Requirements
 
-- Linux with a working Noctalia v5 session. Tested with Noctalia 5.2.1 and plugin API 27; use a release supporting API 27 or newer.
+- Linux with a working Noctalia v5 session. Tested with Noctalia 5.2.1 and plugin API 32; use a release supporting API 32 or newer.
 - Python 3.11 or newer (standard library only).
 - At least one configured backend, accessible from Noctalia's desktop PATH:
   - OpenCode v2: tested with 2.0.29 and its native local service. V1 is unsupported.
@@ -28,13 +28,13 @@ On other compositors, chat, file selection and export remain usable; use your sc
 Copy both the archive and its `.sha256` file to the other laptop. From that folder:
 
 ```sh
-sha256sum -c agent-chat-0.8.0.tar.gz.sha256
-tar -xzf agent-chat-0.8.0.tar.gz
-cd agent-chat-0.8.0
+sha256sum -c agent-chat-0.9.0.tar.gz.sha256
+tar -xzf agent-chat-0.9.0.tar.gz
+cd agent-chat-0.9.0
 python3 scripts/doctor.py
 python3 scripts/install.py
 python3 scripts/install.py --apply
-noctalia msg plugins enable local/agent-chat
+noctalia msg plugins enable iboldizsar/agent-chat
 ```
 
 The checksum verifies that the archive matches the checksum you copied; it is not a publisher signature.
@@ -45,16 +45,16 @@ The executable PATH seen in a terminal can differ from Noctalia's desktop PATH, 
 
 ## First launch
 
-1. In Noctalia settings, add the `local/agent-chat:status` bar widget if wanted.
-2. In Settings → Control Center, add the Agent Chat shortcut (`local/agent-chat:chat`). Noctalia has a limited number of slots; choose which existing shortcut to replace yourself.
+1. In Noctalia settings, add the `iboldizsar/agent-chat:status` bar widget if wanted.
+2. In Settings → Control Center, add the Agent Chat shortcut (`iboldizsar/agent-chat:chat`). Noctalia has a limited number of slots; choose which existing shortcut to replace yourself.
 3. Open Agent Chat. On a fresh installation, setup checks the desktop PATH, preselects the only available backend if there is one, and lets you connect OpenCode or Codex and choose a discovered model. Finish setup when connected. Use the backend’s normal CLI sign-in if needed; no test prompt is sent. Existing installations retain their choices and skip setup. Review it later from Chat options → Setup & dependencies. Missing optional tools do not block text chat.
 4. Configure appearance and notifications through the plugin's settings page, or right-click its shortcut/bar icon.
 
 To open directly:
 
 ```sh
-noctalia msg panel-toggle local/agent-chat:panel
-noctalia msg settings-open-plugin local/agent-chat
+noctalia msg panel-toggle iboldizsar/agent-chat:panel
+noctalia msg settings-open-plugin iboldizsar/agent-chat
 ```
 
 For OpenCode, start its existing native service when needed:
@@ -70,7 +70,7 @@ Codex starts an owned stdio app-server on demand, using its existing local confi
 A global shortcut is optional. Bind this command using the target compositor's supported configuration:
 
 ```sh
-noctalia msg panel-toggle local/agent-chat:panel
+noctalia msg panel-toggle iboldizsar/agent-chat:panel
 ```
 
 The installer does not edit compositor bindings or Noctalia layouts. Super+/ is a suggestion, not installed automatically. On this development laptop it already exists and is preserved.
@@ -95,9 +95,9 @@ The portable context does not assume Arch, Hyprland, a username, dotfiles, or a 
 Finish/Stop running work before replacing the payload, then:
 
 ```sh
-noctalia msg plugins disable local/agent-chat
+noctalia msg plugins disable iboldizsar/agent-chat
 python3 scripts/install.py --apply
-noctalia msg plugins enable local/agent-chat
+noctalia msg plugins enable iboldizsar/agent-chat
 ```
 
 Updates require Agent Chat's ownership marker, preserve assistant instructions and private state, and print a backup path. Unmanaged destinations, symlinked destinations and leftover staging paths are refused. Backend history is not copied or migrated.
@@ -109,7 +109,7 @@ To roll back, disable the plugin, move the current owned payload aside, copy the
 Finish/Stop work and disable the plugin first:
 
 ```sh
-noctalia msg plugins disable local/agent-chat
+noctalia msg plugins disable iboldizsar/agent-chat
 python3 scripts/install.py --uninstall
 python3 scripts/install.py --uninstall --apply
 ```
@@ -129,3 +129,8 @@ Use your configured assistant directory if changed. The helper refuses shutdown 
 ## Validation limits
 
 Daily-use checks passed on the development laptop, including both backends, models, attachments/images, keyboard shortcuts, background responses, Stop, permissions, notifications, native screenshots, Save As and the redesigned options screen. Packaging tests cover isolated install/update/uninstall, preservation and archive contents. A clean staging test is not a second-laptop desktop integration test. Restart-during-work, outage/recovery, large-history performance and multi-monitor validation remain deferred.
+
+
+### Upgrading the old local identity
+
+Versions previously used `local/agent-chat`. Before installing 0.9.0 over that payload, follow [MIGRATION.md](MIGRATION.md) to preserve private state, settings, placement and any existing opening shortcut. The installer refuses an unmigrated legacy state directory. Keep the old attachment cache because saved conversations can reference its paths. The current public ID is `iboldizsar/agent-chat` and API 32 is required; Noctalia 5.2.1 supports it.

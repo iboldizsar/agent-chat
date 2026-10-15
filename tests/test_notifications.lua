@@ -31,3 +31,25 @@ s.connected = true; s.recovering = true; update('codex', s, true)
 s.busy = false; update('codex', s, true)
 s.recovering = false; update('codex', s, true)
 assert(#sent == 2, 'transport/session recovery must not masquerade as completed work')
+
+-- Action callbacks and individual approvals are delivered at most once.
+local actionCount = 0
+local checkpoint = {}
+local tracking = module.new(function() actionCount = actionCount + 1 end, checkpoint)
+local state = { session = 'separate', connected = true, busy = false, status = 'waiting', error = '', requests = {} }
+tracking('codex', state, true)
+state.requests = { { id = 'one' } }; tracking('codex', state, true)
+local first = #sent
+sent[first].cb('open'); sent[first].cb('open'); assert(actionCount == 1)
+state.requests = { { id = 'one' }, { id = 'two' } }; tracking('codex', state, true)
+local count = #sent
+state.requests = { { id = 'one' } }; tracking('codex', state, true)
+assert(#sent == count, 'resolving a subset must not repeat old approval notifications')
+local reloaded = module.new(function() end, checkpoint)
+reloaded('codex', state, true)
+state.requests = {}; reloaded('codex', state, true)
+state.requests = { { id = 'one' } }; reloaded('codex', state, true)
+assert(#sent == count, 'persisted approval ids suppress replay after reload')
+for i = 1, 150 do state.requests = { { id = 'new-' .. i } }; reloaded('codex', state, false) end
+assert(#checkpoint == 128, 'deduplication metadata must stay bounded')
+print('Notification actions, approval subsets, reload deduplication and metadata bounds: passed')

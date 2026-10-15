@@ -9,7 +9,8 @@ import shutil
 import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
-PLUGIN_ID = 'local/agent-chat'
+PLUGIN_ID = 'iboldizsar/agent-chat'
+LEGACY_ID = 'local/agent-chat'
 
 
 def manifest():
@@ -26,7 +27,7 @@ def owned(destination):
     except (OSError, ValueError):
         raise SystemExit('Refusing a plugin directory without valid Agent Chat ownership metadata')
     # Previous local installers wrote source/version without an id.
-    if marker.get('id', PLUGIN_ID) != PLUGIN_ID or not isinstance(marker.get('source'), str):
+    if marker.get('id', LEGACY_ID) not in (PLUGIN_ID, LEGACY_ID) or not isinstance(marker.get('source'), str):
         raise SystemExit('Refusing foreign plugin ownership metadata')
     return True
 
@@ -56,6 +57,10 @@ def install(home, apply=False, uninstall=False):
         else:
             print('Plugin is not installed.')
         return
+    legacy = home / '.local/state/noctalia/plugins/data' / LEGACY_ID
+    public = home / '.local/state/noctalia/plugins/data' / PLUGIN_ID
+    if apply and legacy.exists() and not public.exists():
+        raise SystemExit('Migrate private state with scripts/migrate.py --apply after disabling the old plugin, then retry installation.')
     print('Assistant context:', assistant / 'AGENTS.md', '(preserved)' if (assistant / 'AGENTS.md').exists() else '(new)')
     if not apply:
         print('Preview only; pass --apply to install. No shell settings or shortcuts are changed.')

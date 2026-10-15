@@ -5,6 +5,7 @@ local function clone(value)
     local out = {}; for k, v in pairs(value) do out[k] = clone(v) end; return out
 end
 local api, watch, snapshot, captureDone, exportDone, saveDone = {}, nil, nil, nil, nil, nil
+local notifyAction
 local openDone
 local runtimeDone
 local states, replyCount, replyDone, opens = {}, 0, nil, 0
@@ -47,7 +48,7 @@ end
 env.require = function(relative)
     if relative == './lib/opencode.luau' then return { new = function() return adapter('opencode') end } end
     if relative == './lib/codex.luau' then return { new = function() return adapter('codex') end } end
-    if relative == './lib/notifications.luau' then return { new = function() return function() end end } end
+    if relative == './lib/notifications.luau' then return { new = function(cb) notifyAction = cb; return function() end end } end
     if relative == './lib/attachments.luau' then return {
         capture = function(_, _, done) captureDone = done; return true end,
         saveExport = function(_, _, done) saveDone = done; return true end, tick = function() end,
@@ -81,26 +82,26 @@ action('setup_open'); assert(snapshot.setup.active)
 action('setup_cancel'); assert(not snapshot.setup.active)
 action('backend', 'opencode')
 
-action('attach', 'pick', { returnPanel = 'local/agent-chat:panel' })
+action('attach', 'pick', { returnPanel = 'iboldizsar/agent-chat:panel' })
 assert(snapshot.interactiveJob == 'attachment')
 action('backend', 'codex')
 captureDone(result({ path = '/private/image.png', name = 'image.png' })); tick()
 assert(#states.codex.attachments == 0 and #states.opencode.attachments == 0 and opens == 0)
 assert(not snapshot.interactiveJob)
-action('attach', 'pick', { returnPanel = 'local/agent-chat:panel' })
+action('attach', 'pick', { returnPanel = 'iboldizsar/agent-chat:panel' })
 action('visible', true)
 captureDone(result({ path = '/private/image.png', name = 'image.png' })); tick()
 assert(#states.codex.attachments == 1 and opens == 0, 'manual reopen permits same-chat attachment without stealing focus')
-action('attach', 'pick', { returnPanel = 'local/agent-chat:fullscreen' })
+action('attach', 'pick', { returnPanel = 'iboldizsar/agent-chat:fullscreen' })
 local completed = captureDone
 completed(result({ cancelled = true })); completed(result({ cancelled = true })); tick()
 assert(opens == 1 and not snapshot.interactiveJob, 'cancellation restores the layout once')
 assert(states.codex.attachmentNotice == 'File selection canceled.')
-action('attach', 'pick', { returnPanel = 'local/agent-chat:panel' })
+action('attach', 'pick', { returnPanel = 'iboldizsar/agent-chat:panel' })
 captureDone(result({ error = 'helper failed' })); tick()
 assert(not snapshot.interactiveJob and states.codex.error == 'helper failed')
 states.codex.session = 'old'
-action('export', nil, { returnPanel = 'local/agent-chat:panel' })
+action('export', nil, { returnPanel = 'iboldizsar/agent-chat:panel' })
 action('backend', 'opencode')
 exportDone({ { id = 'm', text = 'test', role = 'You' } }); tick()
 assert(not states.codex.exporting and not snapshot.interactiveJob and saveDone == nil, 'obsolete export must not launch Save As')
@@ -176,3 +177,12 @@ action('send'); assert(states.opencode.error:find('missing') and states.opencode
 states.opencode.attachments = { { path = '/oversize' } }
 action('send'); assert(states.opencode.error:find('8 MiB') and states.opencode.draft == 'target draft')
 print('Failed pin lookup and missing/oversize attachments preserve the original draft: passed')
+
+states.opencode.attachments = {}; states.opencode.busy = true
+notifyAction('opencode', 'from-notification'); tick()
+assert(snapshot.notificationTarget.session == 'from-notification' and states.opencode.session == 'target')
+action('notification_open'); assert(states.opencode.session == 'target')
+states.opencode.busy = false
+action('notification_open'); openDone(true); tick()
+assert(not snapshot.notificationTarget and states.opencode.session == 'from-notification')
+print('Busy notification navigation preserves current work and opens the intended chat later: passed')

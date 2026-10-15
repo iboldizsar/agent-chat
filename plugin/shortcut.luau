@@ -12,7 +12,7 @@ end
 noctalia.state.watch("chat_snapshot", render)
 render(noctalia.state.get("chat_snapshot"))
 function onClick()
-    noctalia.togglePanel(noctalia.getConfig("open_fullscreen") and "local/agent-chat:fullscreen" or "local/agent-chat:panel")
+    noctalia.togglePanel(noctalia.getConfig("open_fullscreen") and "iboldizsar/agent-chat:fullscreen" or "iboldizsar/agent-chat:panel")
 end
 function onRightClick() noctalia.openSettings() end
 noctalia.writeFile(noctalia.pluginDataDir() .. "/shortcut-diagnostic.json",

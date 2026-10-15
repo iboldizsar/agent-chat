@@ -6,12 +6,12 @@ Quick desktop chat and laptop assistance using your existing OpenCode or Codex s
 
 | Field | Value |
 | --- | --- |
-| ID | `local/agent-chat` |
+| ID | `iboldizsar/agent-chat` |
 | Entries | Bar widget: `status`; panels: `panel`, `fullscreen`; service: `service`; control-center shortcut: `chat` |
 
 ## Requirements
 
-- `python3` (3.11+) and the `noctalia` host CLI on the desktop PATH.
+- `python3` (3.11+) and the `noctalia` host CLI on the desktop PATH. Requires plugin API 32 (tested Noctalia 5.2.1).
 - Either `opencode` (tested 2.0.29) or `codex` (tested 0.162.1), configured and signed in through that service. Both appear in dependency metadata; only one is needed for text chat. OpenCode requires its existing v2 service to be running.
 - `chmod` for private state/export permissions.
 - Optional `zenity`: file selection and Markdown Save As.
@@ -20,22 +20,24 @@ Quick desktop chat and laptop assistance using your existing OpenCode or Codex s
 - Optional `notify-send` (libnotify): clickable notification actions; native plain notifications remain available.
 - Optional `xdg-open` (xdg-utils): user-initiated consent links.
 
+Usage figures show their update time and warn when stale or unavailable. Refresh allowance checks metadata without sending a prompt; the helper checks usage again before each user turn and retains the 85% guard.
+
 Missing optional tools do not block text chat. Executables must be accessible from Noctalia, which may have a different PATH from your terminal. No provider credentials are bundled or collected.
 
 ## Usage
 
-Enable the plugin in Noctalia's plugin settings. Add `local/agent-chat:status` to a bar and `local/agent-chat:chat` to the control center if wanted. Their click opens chat; right-click opens plugin settings. The `local/agent-chat:service` entry runs in the background while enabled.
+Enable the plugin in Noctalia's plugin settings. Add `iboldizsar/agent-chat:status` to a bar and `iboldizsar/agent-chat:chat` to the control center if wanted. Their click opens chat; right-click opens plugin settings. The `iboldizsar/agent-chat:service` entry runs in the background while enabled.
 
 Open the centered panel:
 
 ```sh
-noctalia msg panel-toggle local/agent-chat:panel
+noctalia msg panel-toggle iboldizsar/agent-chat:panel
 ```
 
 Open the fullscreen panel:
 
 ```sh
-noctalia msg panel-toggle local/agent-chat:fullscreen
+noctalia msg panel-toggle iboldizsar/agent-chat:fullscreen
 ```
 
 Fresh installations offer setup: check tools, connect a service and choose a discovered model. No test prompt is sent. Review setup later from Chat options → Setup & dependencies. The default assistant instructions are created only when missing; custom directories must already contain an `AGENTS.md` file.
@@ -57,20 +59,20 @@ Attachments are limited to 8 MiB each. Supported images have thumbnails and larg
 | `background_opacity` | int | 100 | Percent, 0–100. Controls plugin fill; the host panel still follows Noctalia transparency. Text stays opaque. |
 | `card_opacity` | int | 100 | Percent, 0–100. Controls card fills without fading text. |
 | `notify_completion` | bool | true | Generic completion notification outside the visible chat. |
-| `notify_approvals` | bool | true | Generic input-needed notification outside the visible chat. |
+| `notify_approvals` | bool | true | Generic input-needed notification outside the visible chat. Approval IDs are retained privately in a bounded deduplication list. |
 
 ## IPC
 
 Open plugin settings:
 
 ```sh
-noctalia msg settings-open-plugin local/agent-chat
+noctalia msg settings-open-plugin iboldizsar/agent-chat
 ```
 
 Write metadata-only diagnostics into the plugin data directory:
 
 ```sh
-noctalia msg plugin local/agent-chat:service all diagnose
+noctalia msg plugin iboldizsar/agent-chat:service all diagnose
 ```
 
 The service also accepts an `action` event with a JSON command payload for internal panel routing. It includes mutating actions such as send, reply and delete; do not invoke commands from untrusted sources. Diagnostic metadata excludes prompt text, drafts and credentials.

@@ -204,6 +204,7 @@ cold.connect()
 assert(cold.state.connection.phase == 'connecting' and cold.state.error == '', 'cold helper registration must be awaited without a false failure')
 registrationReady = true; clock = clock + 201; cold.tick(); path('/health', {})
 assert(cold.state.connected)
+rpc('account/rateLimits/read', { known = false, windows = {} })
 noctalia.readFile = originalRead
 print('Cold Codex helper registration readiness: passed')
 
@@ -243,3 +244,13 @@ for _, backend in ipairs({ 'codex', 'opencode' }) do
     assert(not adapter.state.recovering and adapter.state.openFailures['missing-pin'])
 end
 print('Unavailable pins do not strand the current conversation or replace its draft: passed')
+
+queue = {}
+cold.refreshUsage(); cold.refreshUsage()
+assert(#queue == 1 and cold.state.usageChecking)
+rpc('account/rateLimits/read', { known = true, checkedAt = clock / 1000, windows = { { usedPercent = 5 } } })
+assert(not cold.state.usageChecking and cold.state.usage.known)
+cold.refreshUsage()
+respond(function(r) return fixtures[r.body] and fixtures[r.body].method == 'account/rateLimits/read' end, { error = 'offline' }, 503)
+assert(not cold.state.usageChecking and cold.state.usage.stale)
+print('Usage refresh is serialized and retains stale evidence on failure: passed')

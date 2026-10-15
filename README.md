@@ -12,17 +12,17 @@ From an extracted release archive:
 python3 scripts/doctor.py
 python3 scripts/install.py              # preview
 python3 scripts/install.py --apply
-noctalia msg plugins enable local/agent-chat
+noctalia msg plugins enable iboldizsar/agent-chat
 ```
 
-Requires Python 3.11+, Noctalia supporting plugin API 27+, and at least one configured backend. Tested with Noctalia 5.2.1, OpenCode 2.0.29 and Codex CLI 0.162.1. The dependency checker reports optional desktop tools separately. No provider credentials are included or duplicated.
+Requires Python 3.11+, Noctalia supporting plugin API 32+, and at least one configured backend. Tested with Noctalia 5.2.1, OpenCode 2.0.29 and Codex CLI 0.162.1. The dependency checker reports optional desktop tools separately. No provider credentials are included or duplicated.
 
 The installer copies the plugin to `~/.local/share/noctalia/plugins/agent-chat/`, creates a portable assistant context only if missing, and preserves private state. Updates back up the previous owned payload. Disable the plugin and finish/Stop work before updating or uninstalling. Shell bindings and Noctalia layouts are not changed automatically.
 
 Add Agent Chat to the bar/control center through Noctalia settings. Open manually with:
 
 ```sh
-noctalia msg panel-toggle local/agent-chat:panel
+noctalia msg panel-toggle iboldizsar/agent-chat:panel
 ```
 
 Fresh installations open a setup screen that checks tools from Noctalia’s environment and connects your chosen service without sending a test message. Existing installations keep their choices and skip onboarding. Reopen it from Chat options → Setup & dependencies. Optional tools do not block text chat.
@@ -79,7 +79,7 @@ The portable [assistant context](docs/assistant-AGENTS.md) assumes no particular
 ```sh
 python3 scripts/package.py
 cd dist
-sha256sum -c agent-chat-0.8.0.tar.gz.sha256
+sha256sum -c agent-chat-0.9.0.tar.gz.sha256
 ```
 
 The builder uses the explicit [release file allowlist](PACKAGE-FILES.txt), normalizes archive metadata, and emits a reproducible `.tar.gz` plus SHA-256 checksum. It excludes local conversation/handoff records and implementation notes as well as runtime state. It does not publish or commit anything. Copy the archive and checksum to the target laptop, then follow the included installation guide.
@@ -112,3 +112,6 @@ The 0.6.0 candidate adds versioned/recoverable preference saves, supervised inte
 
 
 The 0.8.0 candidate adds attachment previews/capture feedback and grouped history with guarded pagination. Failed saved-chat opens preserve the current draft. Implementation checks pass; the user accepted the installed preview/capture/history behavior.
+
+
+The 0.9.0 candidate uses the public ID `iboldizsar/agent-chat` and plugin API 32 (Noctalia 5.2.1 tested). It adds self-contained context setup, safe identity migration, durable approval-notification deduplication, deferred notification links and timestamped usage refresh. Existing local users must follow [the migration guide](docs/MIGRATION.md) before upgrading. Community submission preparation is documented [here](docs/SUBMISSION.md); a real thumbnail is still required.

@@ -7,6 +7,12 @@ local function defaults()
 end
 local function valid(value)
     if type(value) ~= "table" then return false end
+    if value.notificationSeen ~= nil then
+        if type(value.notificationSeen) ~= "table" then return false end
+        for index, key in pairs(value.notificationSeen) do
+            if type(index) ~= "number" or index < 1 or index % 1 ~= 0 or type(key) ~= "string" then return false end
+        end
+    end
     if value.setupCompleted ~= nil and type(value.setupCompleted) ~= "boolean" then return false end
     if value.backend ~= nil and value.backend ~= "opencode" and value.backend ~= "codex" then return false end
     for _, key in ipairs({ "selections", "drafts", "pins" }) do

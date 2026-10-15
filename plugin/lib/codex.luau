@@ -168,6 +168,19 @@ function M.new(cwd, changed)
             connection.failure(token, true); s.status = "disconnected"; fail("Could not launch the Codex helper.")
         end
     end
+    local usageGeneration = 0
+    function A.refreshUsage()
+        if s.usageChecking then return end
+        usageGeneration = usageGeneration + 1; local version = usageGeneration
+        s.usageChecking = true; publish()
+        rpc("account/rateLimits/read", {}, function(r)
+            if version ~= usageGeneration then return end
+            s.usageChecking = false
+            if r then s.usage = r
+            else s.usage.stale = true end
+            publish()
+        end, true)
+    end
     function A.discover()
         s.authentication = "checking"
         rpc("account/read", {}, function(r)
@@ -185,7 +198,7 @@ function M.new(cwd, changed)
             end
             C.ensureModel(s, s.model, default); publish()
         end)
-        rpc("account/rateLimits/read", {}, function(r) if r then s.usage = r; publish() end end)
+        A.refreshUsage()
         A.list(s.historyQuery or "")
     end
     function A.list(search, page)

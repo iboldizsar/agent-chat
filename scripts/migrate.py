@@ -5,6 +5,10 @@ import os
 from pathlib import Path
 import shutil
 import stat
+import re
+import tempfile
+import tomllib
+from datetime import datetime, timezone
 
 OLD = 'local/agent-chat'
 NEW = 'iboldizsar/agent-chat'
@@ -72,12 +76,65 @@ def migrate(home, apply=False):
             shutil.rmtree(staging)
 
 
+def settings_copy(path, backup_directory=None, apply=False):
+    path = Path(path)
+    if path.is_symlink():
+        raise ValueError('Refusing to replace symlinked settings; use the controlling source')
+    original = path.read_text()
+    before = tomllib.loads(original)
+    def transform(value):
+        if isinstance(value, str):
+            return NEW + value[len(OLD):] if value == OLD or value.startswith(OLD + ':') else value
+        if isinstance(value, list):
+            return [transform(child) for child in value]
+        if isinstance(value, dict):
+            result = {}
+            for key, child in value.items():
+                key = transform(key)
+                if key in result:
+                    raise ValueError('Both identities already have settings; resolve them explicitly')
+                result[key] = transform(child)
+            return result
+        return value
+    expected = transform(before)
+    pattern = r"([\"'])" + re.escape(OLD) + r"(?=(:[a-z0-9._-]+)?\1)"
+    updated, count = re.subn(pattern, lambda match: match.group(1) + NEW, original)
+    if tomllib.loads(updated) != expected:
+        raise ValueError('Settings use an unexpected representation; review the migration manually')
+    if not apply or count == 0:
+        return {'replacements': count, 'applied': False}
+    if backup_directory is None:
+        raise ValueError('A private backup directory is required before replacing settings')
+    backup = Path(backup_directory)
+    backup.mkdir(parents=True, mode=0o700, exist_ok=True)
+    with (backup / 'noctalia-settings.toml').open('xb') as output:
+        os.chmod(output.name, 0o600)
+        output.write(original.encode())
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=path.parent, prefix='.agent-chat-settings-', delete=False) as output:
+            temporary = Path(output.name); output.write(updated.encode())
+        if path.read_text() != original:
+            raise ValueError('Settings changed during migration; original backup retained')
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None: temporary.unlink(missing_ok=True)
+    return {'replacements': count, 'applied': True}
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--home', type=Path, default=Path.home())
     parser.add_argument('--apply', action='store_true')
+    parser.add_argument('--settings', type=Path, help='migrate only this Noctalia settings file, instead of private data')
     args = parser.parse_args()
     try:
+        if args.settings:
+            backup = args.home / '.local/state/agent-chat/install-backups' / ('identity-settings-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ'))
+            result = settings_copy(args.settings, backup, args.apply)
+            print('Settings migration:', result)
+            if result['applied']: print('Private settings backup:', backup)
+            raise SystemExit(0)
         result = migrate(args.home, args.apply)
         print('Source:', result['source'])
         print('Destination:', result['destination'])

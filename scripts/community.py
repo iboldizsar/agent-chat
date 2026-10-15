@@ -9,11 +9,12 @@ import tomllib
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def stage(output, author='iboldizsar', plugin_api=33):
+def stage(output, author='iboldizsar', plugin_api=32):
     if not re.fullmatch(r'[a-z0-9][a-z0-9._-]*', author):
         raise ValueError('Author must be a valid lowercase plugin id segment')
-    if plugin_api < 27:
-        raise ValueError('This plugin requires API 27 or newer')
+    if plugin_api < 32:
+        raise ValueError('This plugin requires API 32 or newer')
+    metadata = tomllib.loads((ROOT / 'plugin/plugin.toml').read_text())
     target = Path(output) / 'agent-chat'
     if target.exists() or target.is_symlink():
         raise ValueError('Destination exists; use a new empty output directory')
@@ -31,9 +32,9 @@ def stage(output, author='iboldizsar', plugin_api=33):
         destination = target / relative.relative_to('plugin')
         destination.parent.mkdir(parents=True, exist_ok=True)
         if relative.suffix in ('.luau', '.py', '.md', '.toml'):
-            text = (ROOT / relative).read_text().replace('local/agent-chat', author + '/agent-chat')
+            text = (ROOT / relative).read_text().replace(metadata['id'], author + '/agent-chat')
             if relative.name == 'plugin.toml':
-                text = text.replace('author = "local"', 'author = "' + author + '"')
+                text = re.sub(r'(?m)^author = "[^"]+"$', 'author = "' + author + '"', text)
                 text = re.sub(r'(?m)^plugin_api = \d+$', 'plugin_api = ' + str(plugin_api), text)
             destination.write_text(text)
         else:
@@ -60,7 +61,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--author', default='iboldizsar')
-    parser.add_argument('--plugin-api', type=int, default=33)
+    parser.add_argument('--plugin-api', type=int, default=32)
     args = parser.parse_args()
     result = stage(args.output_dir, args.author, args.plugin_api)
     print(result)

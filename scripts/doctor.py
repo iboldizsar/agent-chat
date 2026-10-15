@@ -28,9 +28,9 @@ def check(backend='auto'):
         print('Noctalia:', value)
         match = re.search(r'(?<!\d)(\d+)\.(\d+)\.(\d+)', value)
         if match and tuple(map(int, match.groups())) < (5, 2, 1):
-            errors.append('Use Noctalia 5.2.1 or newer with plugin API 27+')
+            errors.append('Use Noctalia 5.2.1 or newer with plugin API 32+')
         elif not match:
-            print('NOTE: Could not verify Noctalia version; plugin API 27+ is required.')
+            print('NOTE: Could not verify Noctalia version; plugin API 32+ is required.')
     available = {name: bool(shutil.which(name)) for name in ('opencode', 'codex')}
     for name, found in available.items():
         value = version(name) if found else 'not installed'

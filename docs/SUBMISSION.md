@@ -7,12 +7,12 @@ Author chosen by the user: `iboldizsar`; public id: `iboldizsar/agent-chat`.
 Stage an isolated directory for review (choose a new output path each time):
 
 ```sh
-python3 scripts/community.py --output-dir dist/community-review --author iboldizsar --plugin-api 33
+python3 scripts/community.py --output-dir dist/community-review --author iboldizsar --plugin-api 32
 ```
 
-This copies the explicit runtime allowlist under `agent-chat/`, rewrites the namespace in that copy, and reports partial structural blockers. It does not install or publish. Keep the local compatibility manifest at API 27 until deployment compatibility is resolved. Staged code remains readable; no runtime logic is downloaded or generated.
+This copies the explicit runtime allowlist under `agent-chat/`, rewrites the namespace in that copy, and reports partial structural blockers. It does not install or publish. Both the source and staged manifests require API 32, matching image tooltips and the latest released Noctalia 5.2.1. API 33 is unreleased. Staged code remains readable; no runtime logic is downloaded or generated.
 
-Remaining submission items include a real 960×540 thumbnail.webp, visual evidence, the final bumped milestone version, current upstream CI and a tested migration for existing local users. Do not submit a development stage merely because its local structural check lists only a thumbnail blocker.
+Remaining submission items include a real 960×540 thumbnail.webp, visual evidence, the final bumped milestone version, current upstream CI and user acceptance of the tested public-ID migration. Do not submit a development stage merely because its local structural check lists only a thumbnail blocker.
 
 ## Side-effect inventory for the eventual PR
 

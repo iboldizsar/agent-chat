@@ -33,7 +33,7 @@ class PackagingTests(unittest.TestCase):
         self.home = Path(self.temp.name) / 'a different home'
         self.destination = self.home / '.local/share/noctalia/plugins/agent-chat'
         self.context = self.home / '.local/share/agent-chat/assistant/AGENTS.md'
-        self.state = self.home / '.local/state/noctalia/plugins/data/local/agent-chat/preferences.json'
+        self.state = self.home / '.local/state/noctalia/plugins/data/iboldizsar/agent-chat/preferences.json'
 
     def install(self, **kwargs):
         with contextlib.redirect_stdout(io.StringIO()):
@@ -131,20 +131,47 @@ class CommunityStagingTests(unittest.TestCase):
             metadata = installer.tomllib.loads((target / 'plugin.toml').read_text())
             self.assertEqual(metadata['id'], 'iboldizsar/agent-chat')
             self.assertEqual(metadata['author'], 'iboldizsar')
-            self.assertEqual(metadata['plugin_api'], 33)
+            self.assertEqual(metadata['plugin_api'], 32)
             self.assertIn('iboldizsar/agent-chat:fullscreen', (target / 'README.md').read_text())
             self.assertNotIn('local/agent-chat', (target / 'service.luau').read_text())
             self.assertTrue((target / 'assets/assistant-AGENTS.md').is_file())
             self.assertTrue((target / 'helper/context.py').is_file())
             self.assertFalse((target / 'preferences.json').exists())
-            self.assertEqual(installer.manifest()['id'], 'local/agent-chat')
+            self.assertEqual(installer.manifest()['id'], 'iboldizsar/agent-chat')
             self.assertEqual(community.blockers(target), ['Missing 960x540 thumbnail.webp from a real screenshot'])
             with self.assertRaises(ValueError):
                 community.stage(Path(directory) / 'review')
 
     def test_bad_identity_or_incompatible_api_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
-            for author, api in [('Bad/Name', 33), ('valid', 26)]:
+            for author, api in [('Bad/Name', 32), ('valid', 31)]:
                 with self.assertRaises(ValueError):
                     community.stage(directory, author, api)
             self.assertFalse((Path(directory) / 'agent-chat').exists())
+
+    def test_alternative_staged_author_rewrites_public_source_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = community.stage(directory, author='reviewer')
+            manifest = installer.tomllib.loads((target / 'plugin.toml').read_text())
+            self.assertEqual(manifest['id'], 'reviewer/agent-chat')
+            self.assertEqual(manifest['author'], 'reviewer')
+            self.assertNotIn('iboldizsar/agent-chat', (target / 'service.luau').read_text())
+
+    def test_legacy_upgrade_requires_state_copy_then_accepts_owned_payload(self):
+        migration = module('migration_upgrade', 'migrate.py')
+        with tempfile.TemporaryDirectory() as directory, contextlib.redirect_stdout(io.StringIO()):
+            home = Path(directory)
+            installer.install(home, apply=True)
+            destination = home / '.local/share/noctalia/plugins/agent-chat'
+            marker = destination / '.agent-chat-source.json'
+            metadata = json.loads(marker.read_text()); metadata['id'] = 'local/agent-chat'
+            marker.write_text(json.dumps(metadata))
+            source, target = migration.paths(home)
+            source.mkdir(parents=True)
+            (source / 'preferences.json').write_text('{"drafts":{"keep":"draft"}}')
+            with self.assertRaises(SystemExit):
+                installer.install(home, apply=True)
+            migration.migrate(home, apply=True)
+            installer.install(home, apply=True)
+            self.assertEqual(json.loads(marker.read_text())['id'], 'iboldizsar/agent-chat')
+            self.assertEqual((target / 'preferences.json').read_bytes(), (source / 'preferences.json').read_bytes())

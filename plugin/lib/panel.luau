@@ -2,6 +2,7 @@
 local M = {}
 function M.mount(fullscreen)
 local C = require("./common.luau")
+local Usage = require("./usage.luau")
 local Conversations = require("./conversations.luau")
 local Models = require("./models.luau")
 local snapshot = noctalia.state.get("chat_snapshot")
@@ -188,7 +189,7 @@ local function toggleOptions()
     view = view == "options" and "chat" or "options"; armedDelete = false; render()
 end
 local function toggleFullscreen()
-    panel.close(); noctalia.togglePanel(fullscreen and "local/agent-chat:panel" or "local/agent-chat:fullscreen")
+    panel.close(); noctalia.togglePanel(fullscreen and "iboldizsar/agent-chat:panel" or "iboldizsar/agent-chat:fullscreen")
 end
 local function toggleHelp()
     view = view == "shortcuts" and "chat" or "shortcuts"; render()
@@ -198,7 +199,7 @@ local function attachFile(mode, confirmed)
     if mode == "screenshot" and not confirmed then view = "capture"; render(); return end
     -- Release the layer-shell keyboard grab before opening an external window.
     panel.close()
-    command("attach", mode or "pick", { returnPanel = fullscreen and "local/agent-chat:fullscreen" or "local/agent-chat:panel" })
+    command("attach", mode or "pick", { returnPanel = fullscreen and "iboldizsar/agent-chat:fullscreen" or "iboldizsar/agent-chat:panel" })
 end
 local function key(chord, pressed)
     if pressed ~= true or not isOpen or not snapshot then return end
@@ -236,7 +237,7 @@ render = function()
         icon("square-plus", "New chat · Ctrl+N", newChat, { enabled = idle }),
         icon("download", s.exporting and "Exporting Markdown…" or "Export Markdown…", function()
             panel.close()
-            command("export", nil, { returnPanel = fullscreen and "local/agent-chat:fullscreen" or "local/agent-chat:panel" })
+            command("export", nil, { returnPanel = fullscreen and "iboldizsar/agent-chat:fullscreen" or "iboldizsar/agent-chat:panel" })
         end, { enabled = idle and s.session ~= "" and not s.exporting and not snapshot.interactiveJob, key = "export-markdown" }),
         icon("adjustments-horizontal", "Chat options · Ctrl+,", toggleOptions, { selected = view == "options", key = "chat-options" }),
         icon(fullscreen and "arrows-minimize" or "arrows-maximize", (fullscreen and "Windowed" or "Full screen") .. " · Ctrl+Shift+F", toggleFullscreen),
@@ -256,6 +257,13 @@ render = function()
     if snapshot.preferences and snapshot.preferences.warning then
         table.insert(nodes, ui.column({ gap = 6, padding = 10, fill = "error/0.08", radius = 10 }, {
             label(snapshot.preferences.warning, { fontSize = 12, color = "error", maxLines = 3 }),
+        }))
+    end
+    if snapshot.notificationTarget then
+        table.insert(nodes, ui.row({ gap = 8, align = "center" }, {
+            label("A notification points to another chat. Finish the active turn before opening it.", { fontSize = 12, maxLines = 2, flexGrow = 1 }),
+            button("Open chat", function() command("notification_open") end, { key = "open-notified-chat" }),
+            icon("x", "Dismiss notification link", function() command("notification_dismiss") end),
         }))
     end
     if s.exportPath then
@@ -506,7 +514,12 @@ render = function()
                 }))
                 table.insert(usage, ui.progress({ progress = used / 100, fill = used >= 85 and "error" or "primary", track = "outline/0.15", height = 5, radius = 3 }))
             end
-            if #usage == 0 then table.insert(usage, hint("This service has not reported an allowance yet.")) end
+            local usageState = Usage.status(s.usage, noctalia.nowMs() / 1000, s.connected)
+            if usageState == "unavailable" then table.insert(usage, hint("Allowance is unavailable. Codex checks again before each new message."))
+            elseif usageState == "stale" then table.insert(usage, hint("Last reported figures may be out of date. Refresh to check the current allowance."))
+            else table.insert(usage, hint("Updated " .. (noctalia.formatTime and noctalia.formatTime("%H:%M", s.usage.checkedAt) or "recently") .. ".")) end
+            table.insert(usage, button(s.usageChecking and "Refreshing…" or "Refresh allowance", function() command("usage") end,
+                { key = "refresh-usage", enabled = s.connected and not s.usageChecking, variant = "secondary" }))
             table.insert(settings, section("Usage", usage, "Reported by Codex. New messages pause at 85% reported use."))
         end
         if snapshot.preferences and snapshot.preferences.warning then

@@ -101,6 +101,8 @@ for _, filename in ipairs({ "panel.luau", "fullscreen.luau" }) do
     } } }
     env.onOpen()
     assert(findControl(lastTree, "backend-picker").props.text == "Codex")
+    local refresh = assert(findControl(lastTree, "refresh-usage"))
+    refresh.props.onClick(); assert(commands[#commands].action == "usage")
     local effort = assert(findControl(lastTree, "reasoning-test"))
     assert(effort.props.selectedIndex == 1)
     effort.props.onChange("0")
@@ -127,7 +129,7 @@ for _, filename in ipairs({ "panel.luau", "fullscreen.luau" }) do
     press("ctrl+c"); press("ctrl+v"); press("ctrl+x"); press("ctrl+a"); press("ctrl+z")
     assert(#commands == count, "releases and editing chords must not dispatch actions")
     press("ctrl+n"); assert(commands[#commands].action == "new")
-    press("ctrl+shift+A"); assert(commands[#commands].action == "attach" and commands[#commands].value == "pick" and commands[#commands].returnPanel == (filename == "fullscreen.luau" and "local/agent-chat:fullscreen" or "local/agent-chat:panel"))
+    press("ctrl+shift+A"); assert(commands[#commands].action == "attach" and commands[#commands].value == "pick" and commands[#commands].returnPanel == (filename == "fullscreen.luau" and "iboldizsar/agent-chat:fullscreen" or "iboldizsar/agent-chat:panel"))
     press("ctrl+shift+v"); assert(commands[#commands].action == "attach" and commands[#commands].value == "paste")
     snapshot.current.busy = true
     count = #commands
@@ -137,7 +139,7 @@ for _, filename in ipairs({ "panel.luau", "fullscreen.luau" }) do
     snapshot.current.busy = false
     count = #commands; press("ctrl+shift+x"); assert(#commands == count, "idle stop is a no-op")
     press("ctrl+shift+f")
-    assert(closes > 0 and toggles[#toggles] == (filename == "fullscreen.luau" and "local/agent-chat:panel" or "local/agent-chat:fullscreen"))
+    assert(closes > 0 and toggles[#toggles] == (filename == "fullscreen.luau" and "iboldizsar/agent-chat:panel" or "iboldizsar/agent-chat:fullscreen"))
     snapshot.current.attachments = { { name = '日本語 image.png', path = '/private/image.png', image = true, size = 2048 } }
     snapshot.current.models = { { key = 'text', label = 'Text', modalities = { 'text' } } }
     snapshot.current.model = 'text'
