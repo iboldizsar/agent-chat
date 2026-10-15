@@ -168,7 +168,9 @@ local shortcuts = {
     { "Ctrl + Shift + /", "Keyboard shortcuts" },
 }
 local function toggleHistory()
-    historyOpen = view ~= "chat" or not historyOpen; view = "chat"; render()
+    historyOpen = view ~= "chat" or not historyOpen; view = "chat"
+    if historyOpen then command("history", snapshot and snapshot.current.historyQuery or "") end
+    render()
 end
 local function toggleModels()
     if not snapshot or snapshot.sending or snapshot.current.busy or snapshot.current.recovering then return end
@@ -701,6 +703,7 @@ local function opened(context)
     armedDelete = false
     armedRecovery = false
     historyOpen = noctalia.getConfig("history_open") == true
+    if historyOpen then command("history", snapshot and snapshot.current.historyQuery or "") end
     command("visible", true)
     render()
 end

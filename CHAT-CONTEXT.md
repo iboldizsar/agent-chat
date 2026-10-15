@@ -368,3 +368,8 @@ User requested merging accepted 0.8.0 into main and creating milestone/0.9.0, th
 ## 0.9 migration tooling continued — 2026-10-15
 
 User created the public GitHub repo; added origin, switched it to SSH at user request, and the user confirmed a successful push. On “continue”, usage read 81% five-hour/13% weekly. Prepared offline scripts/migrate.py (preview default) and docs/MIGRATION.md for conservative private-state copying to iboldizsar/agent-chat while keeping original attachment paths/state. Five focused migration tests pass (source preservation/private permissions, pending writes/symlink refusal, concurrent source/destination changes); no live migration or settings/shortcut edits, native deployment, backend prompts or push. Host integration/API33 compatibility, thumbnail, notification/usage/export/accessibility polish remain open. Stop at this bounded slice to avoid approaching the 85% usage guard.
+
+
+## History refresh fix — 2026-10-15
+
+User reported history not saved. Read-only backend checks found one saved Codex chat while the plugin cached zero; an explicit history refresh populated the list. OpenCode assistant listing returned zero with/without parent filter, so no OpenCode data-loss claim was made. Opening history (including history-on-open) now refreshes backend-owned listings. Both-layout panel fixtures and syntax passed; installed only the focused panel module with backup ~/.local/state/agent-chat/install-backups/history-refresh-20261015T105906Z/panel.luau. No inference or transcript changes. Usage reached 84% five-hour/13% weekly; paused after this focused correction. Other 0.9 work remains pending.

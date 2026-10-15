@@ -116,6 +116,7 @@ for _, filename in ipairs({ "panel.luau", "fullscreen.luau" }) do
     press("ctrl+shift+slash")
     assert(hasText("What can I help with?"))
     press("ctrl+h")
+    assert(commands[#commands].action == "history", "opening history must refresh backend-owned saved conversations")
     assert(contains(lastTree, function(n) return n.props.key == "history-search" end))
     press("ctrl+h")
     assert(not contains(lastTree, function(n) return n.props.key == "history-search" end))
