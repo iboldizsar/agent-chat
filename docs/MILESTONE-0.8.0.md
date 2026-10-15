@@ -2,7 +2,7 @@
 
 Branch: `milestone/0.8.0`  
 Baseline: accepted 0.7.0 merged into main  
-Status: implementation complete; 0.8.0 installed for hands-on validation
+Status: complete; installed 0.8.0 accepted by the user on 2026-10-15
 
 ## Implemented in source
 
@@ -39,14 +39,14 @@ Private backups: previous payload `~/.local/state/agent-chat/install-backups/202
 
 Reported usage: 72% five-hour / 11% weekly during staging, below the 85% guard. No inference tests were run.
 
-## Hands-on acceptance remaining
+## Hands-on acceptance checklist
 
 1. Attach an image: check thumbnail, name/size, larger preview, Back and Remove in both layouts. Try a text-only model and confirm the compatibility hint retains the draft.
 2. Attach a file with a long/Unicode name; check type/size and removal. Missing/invalid/oversize cases have isolated fixtures.
 3. Start a screenshot, choose Copy and close annotation; verify attachment and focus return. Cancel a second capture and confirm no stale image is attached.
 4. Open history: check date groups, All/Pinned and title search. Load more pages if available and confirm scroll stays usable. A missing saved pin should show an opening error and remain removable without losing the current draft.
 
-Native geometry, image decoding and scroll behavior require this hands-on acceptance; metadata rendering checks do not prove them. Fresh-install/second-laptop/restart/outage gates remain separately tracked for 1.0.
+The user confirmed “works” after the installed-candidate preview, screenshot and history checks on 2026-10-15. Recorded hands-on acceptance based on that confirmation; no additional agent-run tests or inference were performed. Fresh-install/second-laptop/restart/outage gates remain separately tracked for 1.0.
 
 ## Rollback
 

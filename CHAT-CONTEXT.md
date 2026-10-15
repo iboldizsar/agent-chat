@@ -353,3 +353,8 @@ User requested committing/merging 0.7.0 and creating milestone/0.8.0; main fast-
 ## Milestone 0.8.0 candidate staged — 2026-10-15
 
 On user “go on”, completed capture tool checks/instructions, bounded raster signature/file checks, pre-send missing/oversize checks and failed-pin draft preservation. Identified and fixed an asynchronous draft handoff bug: old session must retain its draft until target metadata succeeds. Failed missing-pin lookups no longer strand a different idle conversation in recovery. All 39 Python tests and 12 Lua suites pass. Installed 0.8.0 while backends idle; private comparison preserved selections/drafts/pins/export folder/favorites/setup state; both layouts render and config/lint pass. Usage 72% five-hour/11% weekly; no model prompts. Previous payload backup 20261015T091912168375Z; preferences validate-0.8.0-20261015T091911Z. Hands-on acceptance remains pending in docs/MILESTONE-0.8.0.md. No global changes, desktop restart or merge.
+
+
+## Milestone 0.8.0 accepted — 2026-10-15
+
+User confirmed “works” after the installed preview, screenshot and history checklist. Recorded 0.8.0 acceptance; no further tests, inference, deployment or merge. Branch remains milestone/0.8.0. Deferred second-laptop/restart/outage gates remain open for 1.0.
