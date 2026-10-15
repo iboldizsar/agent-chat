@@ -8,6 +8,7 @@ local historyOpen = false
 local isOpen = false
 local expanded, answers = {}, {}
 local armedDelete = false
+local armedRecovery = false
 local renameText = ""
 local render
 local function command(action, value, extra)
@@ -231,6 +232,11 @@ render = function()
         icon("x", "Close · Esc", function() panel.close() end),
     })
     local nodes = { header, ui.separator({ color = "outline/0.35", thickness = 1 }) }
+    if snapshot.preferences and snapshot.preferences.warning then
+        table.insert(nodes, ui.column({ gap = 6, padding = 10, fill = "error/0.08", radius = 10 }, {
+            label(snapshot.preferences.warning, { fontSize = 12, color = "error", maxLines = 3 }),
+        }))
+    end
     if s.exportPath then
         table.insert(nodes, ui.row({ gap = 8, align = "center" }, {
             icon("x", "Dismiss export confirmation", function() command("dismiss_export") end),
@@ -382,6 +388,20 @@ render = function()
             if #usage == 0 then table.insert(usage, hint("This service has not reported an allowance yet.")) end
             table.insert(settings, section("Usage", usage, "Reported by Codex. New messages pause at 85% reported use."))
         end
+        if snapshot.preferences and snapshot.preferences.warning then
+            local recovery = { hint(snapshot.preferences.warning) }
+            if snapshot.preferences.canReset then
+                table.insert(recovery, button(armedRecovery and "Confirm new saved preferences" or "Start new saved preferences…", function()
+                    if armedRecovery then command("reset_preferences"); armedRecovery = false
+                    else armedRecovery = true; render() end
+                end, { variant = armedRecovery and "destructive" or "secondary" }))
+                if armedRecovery then
+                    table.insert(recovery, hint("The unreadable original is kept in a private recovery copy. This saves your current choices and drafts as the new preferences."))
+                    table.insert(recovery, button("Cancel", function() armedRecovery = false; render() end))
+                end
+            end
+            table.insert(settings, section("Saved preferences", recovery))
+        end
         table.insert(settings, section("Connection & appearance", {
             settingRow(s.connected and (backendName .. " is connected") or (backendName .. " is disconnected"),
                 s.connected and "Ready for messages." or "Reconnect to restore access to your chats.",
@@ -514,6 +534,7 @@ local function opened(context)
     isOpen = true
     snapshot = noctalia.state.get("chat_snapshot")
     armedDelete = false
+    armedRecovery = false
     historyOpen = noctalia.getConfig("history_open") == true
     command("visible", true)
     render()

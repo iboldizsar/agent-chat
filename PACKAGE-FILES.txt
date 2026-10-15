@@ -15,6 +15,7 @@ plugin/lib/conversations.luau
 plugin/lib/notifications.luau
 plugin/lib/opencode.luau
 plugin/lib/panel.luau
+plugin/lib/preferences.luau
 plugin/panel.luau
 plugin/plugin.toml
 plugin/service.luau
@@ -34,3 +35,4 @@ tests/test_export_file.py
 tests/test_notifications.lua
 tests/test_packaging.py
 tests/test_panel.lua
+tests/test_preferences.lua

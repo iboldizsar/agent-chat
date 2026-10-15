@@ -88,6 +88,7 @@ lua tests/test_panel.lua "$PWD"
 lua tests/test_attachment_runner.lua "$PWD"
 lua tests/test_conversations.lua "$PWD"
 lua tests/test_notifications.lua "$PWD"
+lua tests/test_preferences.lua "$PWD"
 noctalia plugins lint plugin
 ```
 

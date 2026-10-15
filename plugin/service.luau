@@ -7,13 +7,11 @@ local cwd = noctalia.expandPath(noctalia.getConfig("assistant_dir"))
 local dataDir = noctalia.pluginDataDir()
 noctalia.runAsync({ "chmod", "700", dataDir })
 local prefsPath = dataDir .. "/preferences.json"
-local prefs = C.decode(noctalia.readFile(prefsPath)) or { backend = "opencode", selections = {}, drafts = {} }
-prefs.selections = prefs.selections or {}; prefs.drafts = prefs.drafts or {}
-prefs.pins = prefs.pins or {}
+local preferenceStore = require("./lib/preferences.luau").open(noctalia, prefsPath)
+local prefs = preferenceStore.value
 local backend = prefs.backend == "codex" and "codex" or "opencode"
 local adapters = {}
 local dirty = true
-local lastPrefs = ""
 local savingAt = 0
 local sending = false
 local attachmentPending = false
@@ -57,18 +55,17 @@ local function publish()
         background[name] = connected[name] and (x.unread and "finished" or x.status) or "idle"
     end
     noctalia.state.set("chat_snapshot", { current = s, backend = backend,
-        background = background, sending = sending, assistantDir = cwd, pins = prefs.pins[backend] or {} })
+        background = background, sending = sending, assistantDir = cwd, pins = prefs.pins[backend] or {},
+        preferences = { warning = preferenceStore.warning, canReset = preferenceStore.canReset } })
     prefs.backend = backend
     for name, a in pairs(adapters) do
         local x = a.state
         prefs.selections[name] = { model = x.model, session = x.session, effort = x.effort, agent = x.agent }
         prefs.drafts[key(x)] = x.draft
     end
-    local encoded = C.json(prefs)
-    if encoded ~= lastPrefs then
-        noctalia.writeFile(prefsPath, encoded)
-        lastPrefs = encoded
-    end
+    local priorWarning = preferenceStore.warning
+    preferenceStore.save()
+    if priorWarning ~= preferenceStore.warning then dirty = true end
 end
 local function connect(name)
     if not noctalia.fileExists(cwd .. "/AGENTS.md") then
@@ -81,7 +78,8 @@ handle = function(req)
     if type(req) ~= "table" then return end
     local a, s = current()
     local action = req.action
-    if action == "visible" then visible = req.value == true
+    if action == "reset_preferences" then preferenceStore.reset()
+    elseif action == "visible" then visible = req.value == true
     elseif action == "backend" then
         if req.value ~= "opencode" and req.value ~= "codex" then return end
         backend = req.value
@@ -242,7 +240,8 @@ publish()
 function onIpc(event, payload)
     if event == "action" then handle(C.decode(payload)); return end
     if event ~= "diagnose" then return end
-    local result = { backend = backend, assistantReady = noctalia.fileExists(cwd .. "/AGENTS.md") }
+    local result = { backend = backend, assistantReady = noctalia.fileExists(cwd .. "/AGENTS.md"),
+        preferenceSchema = prefs.schema_version, preferencesWritable = preferenceStore.writable }
     for name, a in pairs(adapters) do
         local s = a.state
         result[name] = { connected = s.connected, status = s.status, models = #s.models,

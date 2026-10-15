@@ -314,3 +314,8 @@ User requested a full 1.0 plan. Created `docs/V1-PLAN.md` grounded in source/pri
 ## Local Git history — 2026-10-15
 
 User explicitly requested initializing a Git repository and explanatory commits for work completed so far. Initialized branch `main`, using the existing configured Git identity. Grouped the initial snapshot into runtime/interface/tests, portable packaging, and compatibility/context/1.0 planning commits. Prior historical statements that commits were not requested are superseded by this instruction. No remote or publishing was requested or configured. Release archives and Python caches remain ignored; runtime data and credentials are outside the project. A credential-pattern audit found no matches. All 27 Python tests, five Lua fixture suites and Noctalia manifest lint passed before committing. Existing Markdown/source formatting was preserved.
+
+
+## 0.6.0 foundation started — 2026-10-15
+
+User authorized creating the milestone branch and starting implementation. Created `milestone/0.6.0`. The first slice adds a versioned preference store, migration from legacy 0.5.0 state, validation, recovery copies, explicit corrupt-file recovery, pending-file/rename saves and protection against newer schemas or interrupted writes. Persistence warnings are separate from backend errors and appear in both layouts; diagnostic metadata includes schema/writable status. Added fault tests and `docs/MILESTONE-0.6.0.md` with the backend capability inventory, state contracts and remaining milestone work. This is development work only: no live preference migration, deployment, backend restart, inference, or release archive rebuild. Manifest remains 0.5.0 until the milestone is ready. Next planned slice is interactive-job lifecycle/exit/focus recovery.
