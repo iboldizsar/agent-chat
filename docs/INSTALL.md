@@ -28,9 +28,9 @@ On other compositors, chat, file selection and export remain usable; use your sc
 Copy both the archive and its `.sha256` file to the other laptop. From that folder:
 
 ```sh
-sha256sum -c agent-chat-0.6.0.tar.gz.sha256
-tar -xzf agent-chat-0.6.0.tar.gz
-cd agent-chat-0.6.0
+sha256sum -c agent-chat-0.7.0.tar.gz.sha256
+tar -xzf agent-chat-0.7.0.tar.gz
+cd agent-chat-0.7.0
 python3 scripts/doctor.py
 python3 scripts/install.py
 python3 scripts/install.py --apply
@@ -47,7 +47,7 @@ The executable PATH seen in a terminal can differ from Noctalia's desktop PATH, 
 
 1. In Noctalia settings, add the `local/agent-chat:status` bar widget if wanted.
 2. In Settings → Control Center, add the Agent Chat shortcut (`local/agent-chat:chat`). Noctalia has a limited number of slots; choose which existing shortcut to replace yourself.
-3. Open Agent Chat. Select OpenCode or Codex from the title dropdown, then choose a discovered model. The initial backend is OpenCode; a Codex-only installation should select Codex on first launch.
+3. Open Agent Chat. On a fresh installation, setup checks the desktop PATH, preselects the only available backend if there is one, and lets you connect OpenCode or Codex and choose a discovered model. Finish setup when connected. Use the backend’s normal CLI sign-in if needed; no test prompt is sent. Existing installations retain their choices and skip setup. Review it later from Chat options → Setup & dependencies. Missing optional tools do not block text chat.
 4. Configure appearance and notifications through the plugin's settings page, or right-click its shortcut/bar icon.
 
 To open directly:

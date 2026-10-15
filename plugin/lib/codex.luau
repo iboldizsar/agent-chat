@@ -168,6 +168,11 @@ function M.new(cwd, changed)
         end
     end
     function A.discover()
+        s.authentication = "checking"
+        rpc("account/read", {}, function(r)
+            s.authentication = r and (r.signedIn and "ready" or "required") or "unknown"
+            publish()
+        end)
         rpc("model/list", { includeHidden = false, limit = 100 }, function(r, err)
             if not r then fail(err); return end
             s.models = {}

@@ -25,9 +25,12 @@ Add Agent Chat to the bar/control center through Noctalia settings. Open manuall
 noctalia msg panel-toggle local/agent-chat:panel
 ```
 
+Fresh installations open a setup screen that checks tools from Noctalia’s environment and connects your chosen service without sending a test message. Existing installations keep their choices and skip onboarding. Reopen it from Chat options → Setup & dependencies. Optional tools do not block text chat.
+
 ## Daily use
 
 - Choose OpenCode or Codex using the title dropdown, and a discovered model from the model picker. The panel title is the selected service name. OpenCode agent selection and Codex reasoning choices are in Chat options.
+- The model picker groups favorites and up to five recent explicit choices per backend. Unavailable favorites remain visible and removable; models are never silently substituted.
 - Enter sends, Shift+Enter adds a newline, Esc hides chat without stopping work. Stop cancels the current response.
 - History supports title search, resume, rename, deletion and per-backend pins. Backend-owned conversations are not silently migrated.
 - Images and files use a private retained attachment cache. Image capability is checked before sending. Codex non-image files are local tool references rather than generic binary uploads.
@@ -74,7 +77,7 @@ The portable [assistant context](docs/assistant-AGENTS.md) assumes no particular
 ```sh
 python3 scripts/package.py
 cd dist
-sha256sum -c agent-chat-0.6.0.tar.gz.sha256
+sha256sum -c agent-chat-0.7.0.tar.gz.sha256
 ```
 
 The builder uses the explicit [release file allowlist](PACKAGE-FILES.txt), normalizes archive metadata, and emits a reproducible `.tar.gz` plus SHA-256 checksum. It excludes local conversation/handoff records and implementation notes as well as runtime state. It does not publish or commit anything. Copy the archive and checksum to the target laptop, then follow the included installation guide.
@@ -93,6 +96,8 @@ lua tests/test_jobs.lua "$PWD"
 lua tests/test_connection.lua "$PWD"
 lua tests/test_activity.lua "$PWD"
 lua tests/test_service.lua "$PWD"
+lua tests/test_models.lua "$PWD"
+lua tests/test_setup.lua "$PWD"
 noctalia plugins lint plugin
 ```
 
@@ -101,4 +106,4 @@ Fixtures use fake transports and never invoke provider inference. Packaging test
 MIT licensed; see [LICENSE](LICENSE).
 
 
-The 0.6.0 candidate adds versioned/recoverable preference saves, supervised interactive helpers with liveness checks, navigation-aware dialog completion, independent connection/activity state, bounded reconnect attempts and restored-session admission gates. Corrupt or interrupted preference saves are preserved for explicit recovery; newer schemas remain read-only. Metadata diagnostics exclude backend error text. This development candidate is staged for native joint validation; release packaging follows acceptance.
+The 0.6.0 candidate adds versioned/recoverable preference saves, supervised interactive helpers with liveness checks, navigation-aware dialog completion, independent connection/activity state, bounded reconnect attempts and restored-session admission gates. Corrupt or interrupted preference saves are preserved for explicit recovery; newer schemas remain read-only. Metadata diagnostics exclude backend error text. The 0.6.0 checklist was accepted by user confirmation. The 0.7.0 candidate adds first-run setup, runtime dependency guidance, Codex sign-in status and favorite/recent model selection; physical UI validation remains pending.

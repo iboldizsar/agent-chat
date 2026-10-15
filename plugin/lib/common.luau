@@ -43,6 +43,17 @@ function M.ensureModel(s, preferred, default)
         s.error = "Selected model is unavailable. Choose a model before sending."
     elseif #s.models > 0 then s.model = s.models[1].key end
 end
+function M.authReady(s)
+    return s.authentication ~= "checking" and s.authentication ~= "required"
+end
+function M.validEffort(s)
+    if s.backend ~= "codex" or s.effort == nil or s.effort == "" then return true end
+    local model = M.selected(s)
+    for _, effort in ipairs(model and model.efforts or {}) do
+        if effort.reasoningEffort == s.effort then return true end
+    end
+    return false
+end
 function M.selected(s)
     for _, m in ipairs(s.models) do if m.key == s.model then return m end end
     return nil

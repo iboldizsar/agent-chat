@@ -2,7 +2,7 @@
 
 Branch: `milestone/0.7.0`  
 Baseline: 0.6.0 merged into main at user request  
-Status: in progress; first model-selection slice implemented, not deployed
+Status: implementation complete; 0.7.0 candidate installed for hands-on validation
 
 ## Progress
 
@@ -12,17 +12,35 @@ Status: in progress; first model-selection slice implemented, not deployed
 - [x] Unavailable favorites remain visible and removable; returning models use authoritative names.
 - [x] Validate model choices in the service, including active work and unavailable selections.
 - [x] Preserve existing preferences; validate optional model-choice metadata under schema 1.
-- [ ] First-run setup that preserves existing installations and can be reopened from options.
-- [ ] Runtime executable/version/dependency checks and actionable optional-feature guidance.
-- [ ] Single-backend setup flows and explicit setup/model/effort validation.
-- [ ] Native validation and final version/package update after milestone implementation.
+- [x] First-run setup that preserves existing installations and can be reopened from options.
+- [x] Runtime executable/version/dependency checks and actionable optional-feature guidance.
+- [x] Single-backend setup flows and explicit setup/model/effort validation.
+- [x] Native metadata/rendering preflight and final version update.
+- [ ] Hands-on setup/favorites acceptance on the installed candidate.
 
 The model picker keeps the existing header design and theme roles. Favorite metadata does not make an unavailable model selectable. Selection clears model-scoped reasoning so the backend can use its supported default; discovery remains authoritative. No credentials or additional transcript storage are introduced.
 
 ## Validation
 
-Focused model, preference, service and both-layout panel suites pass. All 30 Python tests pass; Lua syntax, native plugin manifest lint (zero warnings/errors), and diff whitespace checks pass. No provider prompts, desktop configuration changes, local deployment or release rebuild were performed. Installed candidate remains 0.6.0.
+All 34 Python tests and 12 Lua suites pass, including setup timeout/stale callbacks, CLI version failures, fresh single/dual/missing-backend installs, cancellation, existing-install preservation, unsupported effort and Codex sign-in gating. Lua syntax, Noctalia manifest lint (zero warnings/errors), configuration validation and diff whitespace checks pass.
 
-## Next slice
+Native 0.7.0 preflight: existing preferences migrated with setup marked complete, no onboarding forced. Private comparison confirmed backend, selections, drafts, pins and export folder preserved; no pending write remained. Reopened setup discovered OpenCode 2.0.29, Codex 0.162.1 and all optional tools from Noctalia’s environment. Both layouts report successful rendering. Codex connected, listed seven models and reported existing sign-in ready. Original OpenCode selection and centered chat restored. No model prompts, desktop restart or layout/keybinding edits.
 
-Inspect the installer dependency checks and native process result contract, then add a bounded runtime check from the Noctalia environment. Keep optional utilities independent of basic text chat and avoid requiring both backends. Setup must not silently switch an existing backend/model or issue a test prompt.
+Private backups (outside source):
+
+- Payload: `~/.local/state/agent-chat/install-backups/20261015T090459744628Z/plugin/`
+- Preferences: `~/.local/state/agent-chat/install-backups/validate-0.7.0-20261015T090459Z/preferences.json`
+
+Reported usage during this work: 63% five-hour, 10% weekly, below the existing 85% admission guard. No extra inference tests were run.
+
+## Hands-on checks remaining
+
+1. Open Chat options → Setup & dependencies → Review setup. Confirm the service descriptions and optional tools are readable in both layouts. Later returns to chat; reopening setup preserves choices.
+2. In the model picker, favorite/unfavorite a model. Select a model explicitly; verify it appears in Recently used. Switch backend and confirm independent lists.
+3. Reopen/reload when idle; favorites and recent choices persist, and setup does not appear automatically after completion.
+
+Fresh installations and unavailable models/tools are covered by isolated fixtures rather than by damaging the working laptop. Second-laptop runtime acceptance, restart/outage and other deferred 1.0 gates remain open. The user’s previous checklist completion instruction covered 0.6.0; it is not acceptance of these new 0.7.0 features.
+
+## Rollback
+
+Finish/Stop any active work, disable local/agent-chat, restore the previous owned payload backup, then enable it again. Preserve current private preferences and assistant context. Schema remains 1 with backward-compatible optional setup/model-choice fields; do not overwrite newer drafts with the pre-validation copy.

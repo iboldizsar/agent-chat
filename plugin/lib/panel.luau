@@ -213,6 +213,8 @@ render = function()
         panel.render(ui.column({ padding = 24 }, { label("Opening Agent Chat…") }))
         return
     end
+    if snapshot.setup and snapshot.setup.active and view ~= "models" then view = "setup"
+    elseif view == "setup" then view = "chat" end
     local s = snapshot.current
     local model = C.selected(s)
     local idle = not s.busy and not snapshot.sending and not s.recovering and #s.requests == 0
@@ -263,7 +265,63 @@ render = function()
     if (s.usage or {}).blocked or s.limitPaused then
         table.insert(nodes, label("Usage limit pause · new messages are on hold", { color = "error", fontSize = 12 }))
     end
-    if view == "shortcuts" then
+    if view == "setup" then
+        local runtime = snapshot.setup.runtime or {}
+        local rows = {
+            label(snapshot.setup.completed and "Review your setup" or "Welcome to Agent Chat", { fontSize = 23, fontWeight = "bold" }),
+            label("Use your existing OpenCode or Codex sign-in. Choose a service, connect, then pick a model. No test message is sent.",
+                { fontSize = 13, color = "on_surface_variant", maxLines = 3 }),
+            button(runtime.checking and "Checking desktop tools…" or "Check again", function() command("setup_check") end,
+                { enabled = not runtime.checking, key = "setup-check" }),
+        }
+        if runtime.error then table.insert(rows, label(runtime.error, { color = "error", maxLines = 3 })) end
+        local descriptions = {
+            missing = "Not found in Noctalia’s PATH. Install it and make it available to the desktop, then check again.",
+            unsupported = "Older than the tested baseline. Update this service, then check again.",
+            unverified = "Version could not be verified. Check that this command works from the desktop environment.",
+        }
+        for _, choice in ipairs({ { "opencode", "OpenCode" }, { "codex", "Codex" } }) do
+            local info = (runtime.backends or {})[choice[1]]
+            local available = info and info.status == "available"
+            local text = info and (descriptions[info.status] or (s.backend == choice[1] and s.connected and "Connected" or "Available · connect to check sign-in and load models")) or "Not checked yet"
+            table.insert(rows, section(choice[2] .. (info and info.version and " · " .. info.version or ""), {
+                label(text, { fontSize = 12, maxLines = 3, color = "on_surface_variant" }),
+                button(s.backend == choice[1] and s.connected and "Reconnect" or "Connect", function() command("setup_connect", choice[1]) end,
+                    { key = "setup-" .. choice[1], variant = "secondary", selected = s.backend == choice[1],
+                        enabled = available and not runtime.checking and idle and not (s.connection and s.connection.startedAt) }),
+            }))
+        end
+        if s.authentication == "required" then
+            table.insert(rows, label("Codex needs sign-in. Run codex login in your terminal, then Reconnect here.", { color = "error", maxLines = 3 }))
+        elseif s.authentication == "checking" then
+            table.insert(rows, label("Checking Codex sign-in…", { fontSize = 12, color = "on_surface_variant" }))
+        end
+        table.insert(rows, button(model and ("Model: " .. model.label) or "Choose a model", toggleModels,
+            { key = "setup-model", variant = "secondary", enabled = s.connected and idle }))
+        if not C.validEffort(s) then table.insert(rows, label("Saved reasoning effort is unavailable. Select this model again to use its supported default.", { color = "error", maxLines = 2 })) end
+        local features = {}
+        for _, feature in ipairs({
+            { "zenity", "Files and Save As", "Install Zenity to choose files and export Markdown." },
+            { "wl-paste", "Clipboard images", "Install wl-clipboard for Paste image." },
+            { "hyprctl", "Automatic screenshots", "Requires Hyprland and wl-clipboard. Other desktops can use Paste image." },
+            { "notify-send", "Notification actions", "Install libnotify for clickable notifications; plain notifications remain available." },
+            { "xdg-open", "Consent links", "Install xdg-utils for links that need a browser." },
+        }) do
+            local present = (runtime.tools or {})[feature[1]] == true
+            if feature[1] == "hyprctl" then present = present and (runtime.tools or {})["wl-paste"] == true end
+            table.insert(features, label(feature[2] .. ": " .. (runtime.checking and "Checking…" or (runtime.error and "Not checked" or (present and "Available" or feature[3]))),
+                { fontSize = 12, color = "on_surface_variant", maxLines = 3 }))
+        end
+        table.insert(rows, section("Optional features", features, "Missing tools do not block text chat."))
+        table.insert(rows, label("Use the service’s existing CLI sign-in if authentication is requested. Bar and control-center placement are configured in Noctalia; an opening shortcut is optional. Setup changes no layout or keybindings.",
+            { fontSize = 12, color = "on_surface_variant", maxLines = 4 }))
+        table.insert(rows, ui.row({ gap = 8 }, {
+            button("Finish setup", function() command("setup_complete") end,
+                { key = "setup-finish", variant = "primary", enabled = s.connected and idle and model ~= nil and C.validEffort(s) and C.authReady(s) and not s.recoveryFailed }),
+            button("Later", function() command("setup_cancel"); view = "chat"; render() end, { key = "setup-cancel" }),
+        }))
+        table.insert(nodes, ui.scroll({ flexGrow = 1, gap = 12 }, rows))
+    elseif view == "shortcuts" then
         local rows = {
             ui.row({ gap = 8, align = "center" }, {
                 icon("arrow-left", "Back to chat", function() view = "chat"; render() end),
@@ -342,11 +400,16 @@ render = function()
         }
         if s.backend == "codex" then
             local values, names, selected = {}, {}, 1
+            if not C.validEffort(s) then
+                table.insert(assistant, hint("Saved reasoning effort is unavailable. Choose a supported effort below."))
+                values[1] = false; names[1] = "Choose effort"
+            end
             local friendly = { minimal = "Minimal", low = "Low", medium = "Medium", high = "High", xhigh = "Extra high" }
             for i, option in ipairs(model and model.efforts or {}) do
-                values[i] = option.reasoningEffort
-                names[i] = friendly[option.reasoningEffort] or option.reasoningEffort
-                if (s.effort or model.defaultEffort) == option.reasoningEffort then selected = i end
+                local index = #names + 1
+                values[index] = option.reasoningEffort
+                names[index] = friendly[option.reasoningEffort] or option.reasoningEffort
+                if (s.effort or model.defaultEffort) == option.reasoningEffort then selected = index end
             end
             if #values > 0 then table.insert(assistant, settingRow("Reasoning effort", "Higher effort can take longer and use more allowance.",
                 ui.select({ key = "reasoning-" .. s.model, options = names, selectedIndex = selected - 1, width = 160, enabled = idle,
@@ -426,6 +489,8 @@ render = function()
                 s.connected and "Ready for messages." or "Reconnect to restore access to your chats.",
                 button("Reconnect", function() command("retry") end, { glyph = "refresh", enabled = not snapshot.sending and not (s.connection and s.connection.startedAt),
                     tooltip = "Reconnect without resending messages", variant = "secondary" })),
+            settingRow("Setup & dependencies", "Review services, models and optional desktop tools.",
+                button("Review setup", function() command("setup_open") end, { key = "review-setup", variant = "secondary" })),
             ui.separator({ color = "outline/0.2" }),
             settingRow("Plugin preferences", "Transparency, notifications, history and launch behavior.",
                 button("Configure", function() noctalia.openSettings() end, { glyph = "settings", variant = "secondary" })),

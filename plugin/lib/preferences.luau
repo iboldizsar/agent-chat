@@ -2,10 +2,11 @@
 local M = {}
 M.schemaVersion = 1
 local function defaults()
-    return { schema_version = M.schemaVersion, backend = "opencode", selections = {}, drafts = {}, pins = {} }
+    return { schema_version = M.schemaVersion, backend = "opencode", selections = {}, drafts = {}, pins = {}, setupCompleted = false }
 end
 local function valid(value)
     if type(value) ~= "table" then return false end
+    if value.setupCompleted ~= nil and type(value.setupCompleted) ~= "boolean" then return false end
     if value.backend ~= nil and value.backend ~= "opencode" and value.backend ~= "codex" then return false end
     for _, key in ipairs({ "selections", "drafts", "pins" }) do
         if value[key] ~= nil and type(value[key]) ~= "table" then return false end
@@ -74,6 +75,8 @@ function M.open(api, path)
             store.value.selections = decoded.selections or {}
             store.value.drafts = decoded.drafts or {}
             store.value.pins = decoded.pins or {}
+            -- Existing installations skip onboarding without changing their choices.
+            if decoded.setupCompleted == nil then store.value.setupCompleted = true end
         end
     end
     function store.save()

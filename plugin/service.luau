@@ -30,6 +30,11 @@ local connected = {}
 local visible = false
 local wasBusy = {}
 local function changed() dirty = true end
+local setup = require("./lib/setup.luau").new(noctalia, changed)
+-- Unreadable/future preferences are handled by recovery, never by onboarding.
+local showSetup = prefs.setupCompleted == false and preferenceStore.writable
+local setupDismissed = false
+local setupChosen = false
 adapters.opencode = OpenCode.new(cwd, changed)
 adapters.codex = Codex.new(cwd, changed)
 local function key(s) return s.backend .. ":" .. (s.session ~= "" and s.session or "new") end
@@ -62,6 +67,7 @@ local function publish()
     end
     noctalia.state.set("chat_snapshot", { current = s, backend = backend,
         background = background, sending = sending, assistantDir = cwd, pins = prefs.pins[backend] or {},
+        setup = { active = showSetup, completed = prefs.setupCompleted == true, runtime = setup.state },
         interactiveJob = jobs.pending(), modelChoices = (prefs.modelChoices or {})[backend],
         preferences = { warning = preferenceStore.warning, canReset = preferenceStore.canReset } })
     prefs.backend = backend
@@ -93,16 +99,35 @@ handle = function(req)
     if type(req) ~= "table" then return end
     local a, s = current()
     local action = req.action
-    if action == "reset_preferences" then preferenceStore.reset()
+    if action == "setup_open" then
+        showSetup = true; setup.check()
+    elseif action == "setup_check" then
+        setup.check()
+    elseif action == "setup_cancel" then
+        showSetup = false; setupDismissed = true
+    elseif action == "setup_connect" then
+        local info = setup.state.backends[req.value]
+        if not info or info.status ~= "available" or sending then return end
+        local target = adapters[req.value].state
+        if target.busy or target.recovering or #target.requests > 0 then return end
+        if req.value ~= backend then navigation = navigation + 1 end
+        setupChosen = true; backend = req.value; connect(backend)
+    elseif action == "setup_complete" then
+        local model = C.selected(s)
+        if s.connected and not s.recovering and not s.recoveryFailed and model and C.validEffort(s) and C.authReady(s) and not s.busy and not sending and #s.requests == 0 then
+            prefs.setupCompleted = true; showSetup = false
+        else s.error = "Connect and choose an available model before finishing setup." end
+    elseif action == "reset_preferences" then preferenceStore.reset()
     elseif action == "visible" then
         visible = req.value == true
         if visible then navigation = navigation + 1 end
     elseif action == "backend" then
         if req.value ~= "opencode" and req.value ~= "codex" then return end
+        setupChosen = true
         if backend ~= req.value then navigation = navigation + 1 end
         backend = req.value
         if not connected[backend] then connect(backend) end
-    elseif action == "retry" then connect(backend)
+    elseif action == "retry" then setupChosen = true; connect(backend)
     elseif action == "draft" then s.draft = req.value or ""
     elseif action == "favorite_model" then
         local model = Models.find(s.models, req.value)
@@ -118,7 +143,13 @@ handle = function(req)
             s.model = model.key; s.effort = nil; s.error = ""
             Models.remember(prefs, backend, model)
         end
-    elseif action == "effort" then s.effort = req.value
+    elseif action == "effort" then
+        local model = C.selected(s)
+        if not s.busy and not s.recovering and not sending and #s.requests == 0 and model then
+            for _, effort in ipairs(model.efforts or {}) do
+                if effort.reasoningEffort == req.value then s.effort = req.value; break end
+            end
+        end
     elseif action == "agent" then
         if s.busy then s.error = "Wait for this turn before changing agent."
         elseif s.session == "" then s.agent = req.value
@@ -250,8 +281,10 @@ handle = function(req)
         if s.recovering then s.error = "Wait for conversation recovery before sending; Retry reconnects without resending."; changed(); return end
         if sending or s.busy or s.draft:match("^%s*$") then return end
         if not s.connected then s.error = "Connect the selected backend first"; changed(); return end
+        if not C.authReady(s) then s.error = "Codex sign-in is required or still being checked. Use codex login, then reconnect."; changed(); return end
         local model = C.selected(s)
         if not model then s.error = "Choose an available model"; changed(); return end
+        if not C.validEffort(s) then s.error = "Saved reasoning effort is unavailable. Choose a supported effort in Chat options."; changed(); return end
         local hasImage = false
         for _, m in ipairs(model.modalities or {}) do if m == "image" then hasImage = true end end
         for _, f in ipairs(s.attachments) do
@@ -277,6 +310,7 @@ end
 noctalia.state.watch("chat_command", handle)
 noctalia.setUpdateInterval(100)
 function update()
+    setup.tick()
     Attachments.tick()
     for _, a in pairs(adapters) do a.tick() end
     if dirty and noctalia.nowMs() >= savingAt then
@@ -284,12 +318,25 @@ function update()
     end
 end
 function onExit(_, reason)
+    setup.close()
     publish()
     for _, a in pairs(adapters) do a.close(reason) end
     -- Codex transport remains alive independently; no backend process is terminated here.
 end
-for name, a in pairs(adapters) do
-    if name == backend or a.state.session ~= "" then connect(name) end
+if showSetup then
+    setup.check(function(result)
+        if setupDismissed or setupChosen then return end
+        local only, count = nil, 0
+        for _, name in ipairs({ "opencode", "codex" }) do
+            if result.backends[name].status == "available" then only = name; count = count + 1 end
+        end
+        -- Preselect only on a fresh installation; connection is an explicit action.
+        if count == 1 then backend = only end
+    end)
+else
+    for name, a in pairs(adapters) do
+        if name == backend or a.state.session ~= "" then connect(name) end
+    end
 end
 publish()
 
@@ -299,13 +346,15 @@ function onIpc(event, payload)
     if event ~= "diagnose" then return end
     local manifest = noctalia.readFile(noctalia.pluginDir() .. "/plugin.toml") or ""
     local result = { pluginVersion = manifest:match('version%s*=%s*"([^"]+)"') or "unknown", backend = backend, assistantReady = noctalia.fileExists(cwd .. "/AGENTS.md"),
-        preferenceSchema = prefs.schema_version, preferencesWritable = preferenceStore.writable, interactiveJob = jobs.pending() }
+        preferenceSchema = prefs.schema_version, preferencesWritable = preferenceStore.writable, interactiveJob = jobs.pending(),
+        setupCompleted = prefs.setupCompleted == true, setupActive = showSetup, setupChecking = setup.state.checking,
+        runtimeBackends = setup.state.backends, optionalTools = setup.state.tools, setupCheckFailed = setup.state.error ~= nil }
     for name, a in pairs(adapters) do
         local s = a.state
         result[name] = { connected = s.connected, status = s.status, models = #s.models,
             agents = #s.agents, messages = #s.messages, requests = #s.requests,
             connectionPhase = s.connection and s.connection.phase, retryAttempt = s.connection and s.connection.attempt,
-            activity = s.activity, recovering = s.recovering == true, recoveryFailed = s.recoveryFailed == true, hasError = (s.error or "") ~= "" }
+            activity = s.activity, authentication = s.authentication, recovering = s.recovering == true, recoveryFailed = s.recoveryFailed == true, hasError = (s.error or "") ~= "" }
     end
     noctalia.writeFile(dataDir .. "/diagnostic.json", C.json(result))
 end

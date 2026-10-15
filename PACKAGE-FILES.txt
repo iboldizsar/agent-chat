@@ -9,6 +9,7 @@ plugin/helper/attachments.py
 plugin/helper/codex_bridge.py
 plugin/helper/export_file.py
 plugin/helper/interactive_job.py
+plugin/helper/runtime_check.py
 plugin/lib/activity.luau
 plugin/lib/attachments.luau
 plugin/lib/codex.luau
@@ -21,6 +22,7 @@ plugin/lib/notifications.luau
 plugin/lib/opencode.luau
 plugin/lib/panel.luau
 plugin/lib/preferences.luau
+plugin/lib/setup.luau
 plugin/panel.luau
 plugin/plugin.toml
 plugin/service.luau
@@ -46,4 +48,6 @@ tests/test_notifications.lua
 tests/test_packaging.py
 tests/test_panel.lua
 tests/test_preferences.lua
+tests/test_setup.lua
+tests/test_runtime_check.py
 tests/test_service.lua

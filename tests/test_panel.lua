@@ -137,6 +137,17 @@ for _, filename in ipairs({ "panel.luau", "fullscreen.luau" }) do
     count = #commands; press("ctrl+shift+x"); assert(#commands == count, "idle stop is a no-op")
     press("ctrl+shift+f")
     assert(closes > 0 and toggles[#toggles] == (filename == "fullscreen.luau" and "local/agent-chat:panel" or "local/agent-chat:fullscreen"))
+    snapshot.setup = { active = true, completed = false, runtime = {
+        checking = false, backends = { codex = { status = "missing" }, opencode = { status = "available", version = "2.0.29" } }, tools = {} } }
+    env.onOpen()
+    assert(hasText("Welcome to Agent Chat"))
+    assert(findControl(lastTree, "setup-opencode").props.enabled)
+    assert(not findControl(lastTree, "setup-codex").props.enabled)
+    assert(not findControl(lastTree, "setup-finish").props.enabled)
+    assert(click(lastTree, "setup-cancel") and commands[#commands].action == "setup_cancel")
+    snapshot.setup.active = false
+    env.onOpen()
+    assert(not hasText("Welcome to Agent Chat"))
     env.onClose()
     count = #commands
     press("ctrl+n"); press("ctrl+shift+a")
