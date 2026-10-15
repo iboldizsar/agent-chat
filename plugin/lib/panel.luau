@@ -2,6 +2,7 @@ local M = {}
 function M.mount(fullscreen)
 local C = require("./common.luau")
 local Conversations = require("./conversations.luau")
+local Models = require("./models.luau")
 local snapshot = noctalia.state.get("chat_snapshot")
 local view, search, modelFilter = "chat", "", ""
 local historyOpen = false
@@ -299,10 +300,18 @@ render = function()
         table.insert(nodes, ui.input({ key = "model-search", value = modelFilter, placeholder = "Search models or providers", focus = true,
             onChange = function(v) modelFilter = v; render() end }))
         local rows = {}
-        for _, m in ipairs(s.models) do
-            if modelFilter == "" or m.label:lower():find(modelFilter:lower(), 1, true) then
-                table.insert(rows, button(m.label, function() command("model", m.key); view = "chat"; render() end,
-                    { key = m.key, selected = m.key == s.model, contentAlign = "start", glyph = m.key == s.model and "check" or nil }))
+        for _, group in ipairs(Models.groups(s.models, snapshot.modelChoices, modelFilter)) do
+            if #group.rows > 0 then
+                table.insert(rows, label(group.title, { fontSize = 12, color = "on_surface_variant" }))
+                for _, m in ipairs(group.rows) do
+                    table.insert(rows, ui.row({ gap = 6, align = "center" }, {
+                        button(m.label .. (m.available and "" or " · Unavailable"), function() command("model", m.key); view = "chat"; render() end,
+                            { key = m.key, enabled = idle and m.available, flexGrow = 1, selected = m.key == s.model,
+                                contentAlign = "start", glyph = m.key == s.model and "check" or nil }),
+                        button(m.favorite and "Unfavorite" or "Favorite", function() command("favorite_model", m.key) end,
+                            { key = "favorite-" .. m.key, tooltip = m.favorite and "Remove favorite" or "Add favorite" }),
+                    }))
+                end
             end
         end
         if #rows == 0 then table.insert(rows, label("No matching models", { color = "on_surface_variant" })) end

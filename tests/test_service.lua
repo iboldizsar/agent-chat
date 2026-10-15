@@ -85,3 +85,19 @@ env.onIpc('diagnose')
 local diagnostics = api.json.decode(files['/private/diagnostic.json'])
 assert(diagnostics.opencode.error == nil and diagnostics.preferenceSchema == 1)
 print('Service job ownership, stale navigation, error recovery, reply deduplication and private diagnostics: passed')
+
+states.opencode.requests = {}
+states.opencode.models = { { key = 'p/a', label = 'Alpha' } }
+action('model', 'p/a')
+assert(snapshot.modelChoices.recent[1] == 'p/a')
+action('favorite_model', 'p/a')
+assert(snapshot.modelChoices.favorites['p/a'])
+states.opencode.busy = true
+action('model', 'missing')
+assert(states.opencode.model == 'p/a' and #snapshot.modelChoices.recent == 1)
+states.opencode.busy = false
+states.opencode.models = {}
+action('favorite_model', 'p/a')
+assert(not snapshot.modelChoices.favorites['p/a'])
+action('model', 'missing')
+assert(states.opencode.model == 'p/a', 'missing selection must never substitute a different model')

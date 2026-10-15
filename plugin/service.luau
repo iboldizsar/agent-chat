@@ -1,4 +1,5 @@
 local C = require("./lib/common.luau")
+local Models = require("./lib/models.luau")
 local OpenCode = require("./lib/opencode.luau")
 local Codex = require("./lib/codex.luau")
 local Conversations = require("./lib/conversations.luau")
@@ -61,7 +62,7 @@ local function publish()
     end
     noctalia.state.set("chat_snapshot", { current = s, backend = backend,
         background = background, sending = sending, assistantDir = cwd, pins = prefs.pins[backend] or {},
-        interactiveJob = jobs.pending(),
+        interactiveJob = jobs.pending(), modelChoices = (prefs.modelChoices or {})[backend],
         preferences = { warning = preferenceStore.warning, canReset = preferenceStore.canReset } })
     prefs.backend = backend
     for name, a in pairs(adapters) do
@@ -103,7 +104,20 @@ handle = function(req)
         if not connected[backend] then connect(backend) end
     elseif action == "retry" then connect(backend)
     elseif action == "draft" then s.draft = req.value or ""
-    elseif action == "model" then s.model = req.value; s.effort = nil; s.error = ""
+    elseif action == "favorite_model" then
+        local model = Models.find(s.models, req.value)
+        -- A disappeared favorite remains removable without inventing a model.
+        local favorite = ((prefs.modelChoices or {})[backend] or {}).favorites or {}
+        if model or favorite[req.value] then Models.toggle(prefs, backend, model or { key = req.value, label = favorite[req.value].label }) end
+    elseif action == "model" then
+        local model = Models.find(s.models, req.value)
+        if s.busy or s.recovering or #s.requests > 0 or sending then
+            s.error = "Wait for this turn before changing model."
+        elseif not model then s.error = "Selected model is unavailable. Choose an available model."
+        else
+            s.model = model.key; s.effort = nil; s.error = ""
+            Models.remember(prefs, backend, model)
+        end
     elseif action == "effort" then s.effort = req.value
     elseif action == "agent" then
         if s.busy then s.error = "Wait for this turn before changing agent."

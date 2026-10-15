@@ -25,6 +25,18 @@ local function valid(value)
             if type(id) ~= "string" or type(pin) ~= "table" or type(pin.title) ~= "string" then return false end
         end
     end
+    if value.modelChoices ~= nil then
+        if type(value.modelChoices) ~= "table" then return false end
+        for name, choices in pairs(value.modelChoices) do
+            if type(name) ~= "string" or type(choices) ~= "table" or type(choices.favorites) ~= "table" or type(choices.recent) ~= "table" then return false end
+            for key, favorite in pairs(choices.favorites) do
+                if type(key) ~= "string" or type(favorite) ~= "table" or type(favorite.label) ~= "string" then return false end
+            end
+            for index, key in pairs(choices.recent) do
+                if type(index) ~= "number" or index < 1 or index % 1 ~= 0 or type(key) ~= "string" then return false end
+            end
+        end
+    end
     return value.exportDir == nil or type(value.exportDir) == "string"
 end
 function M.open(api, path)

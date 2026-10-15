@@ -16,6 +16,7 @@ plugin/lib/common.luau
 plugin/lib/connection.luau
 plugin/lib/conversations.luau
 plugin/lib/jobs.luau
+plugin/lib/models.luau
 plugin/lib/notifications.luau
 plugin/lib/opencode.luau
 plugin/lib/panel.luau
@@ -40,6 +41,7 @@ tests/test_conversations.lua
 tests/test_export_file.py
 tests/test_interactive_job.py
 tests/test_jobs.lua
+tests/test_models.lua
 tests/test_notifications.lua
 tests/test_packaging.py
 tests/test_panel.lua
