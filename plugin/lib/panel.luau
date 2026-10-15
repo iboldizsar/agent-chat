@@ -1,3 +1,4 @@
+--!nonstrict
 local M = {}
 function M.mount(fullscreen)
 local C = require("./common.luau")

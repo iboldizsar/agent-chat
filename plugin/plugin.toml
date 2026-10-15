@@ -6,7 +6,8 @@ author = "local"
 license = "MIT"
 icon = "message-circle"
 description = "Desktop chat with OpenCode or Codex, with independent model selection and persistent backend history."
-dependencies = ["python3"]
+tags = ["ai", "productivity", "bar", "panel", "service", "shortcut"]
+dependencies = ["python3", "opencode", "codex", "zenity", "wl-paste", "hyprctl", "notify-send", "xdg-open", "chmod", "noctalia"]
 
 [[setting]]
 key = "assistant_dir"

@@ -1,3 +1,4 @@
+--!nonstrict
 -- Noctalia discovers lifecycle callbacks only in the entry environment.
 local view = require("./lib/panel.luau").mount(false)
 local lastError = nil

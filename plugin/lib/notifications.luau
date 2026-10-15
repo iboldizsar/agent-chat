@@ -1,3 +1,4 @@
+--!nonstrict
 local M = {}
 local function quote(value) return "'" .. value:gsub("'", "'\\''") .. "'" end
 function M.new(openChat)

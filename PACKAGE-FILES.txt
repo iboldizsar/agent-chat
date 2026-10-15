@@ -4,9 +4,13 @@ PACKAGE-FILES.txt
 README.md
 docs/INSTALL.md
 docs/assistant-AGENTS.md
+plugin/LICENSE
+plugin/README.md
+plugin/assets/assistant-AGENTS.md
 plugin/fullscreen.luau
 plugin/helper/attachments.py
 plugin/helper/codex_bridge.py
+plugin/helper/context.py
 plugin/helper/export_file.py
 plugin/helper/interactive_job.py
 plugin/helper/runtime_check.py
@@ -15,6 +19,7 @@ plugin/lib/attachments.luau
 plugin/lib/codex.luau
 plugin/lib/common.luau
 plugin/lib/connection.luau
+plugin/lib/context.luau
 plugin/lib/conversations.luau
 plugin/lib/jobs.luau
 plugin/lib/models.luau
@@ -29,6 +34,7 @@ plugin/service.luau
 plugin/shortcut.luau
 plugin/translations/en.json
 plugin/widget.luau
+scripts/community.py
 scripts/doctor.py
 scripts/install.py
 scripts/package.py
@@ -39,6 +45,8 @@ tests/test_attachment_runner.lua
 tests/test_attachments.py
 tests/test_bridge.py
 tests/test_connection.lua
+tests/test_context.lua
+tests/test_context.py
 tests/test_conversations.lua
 tests/test_export_file.py
 tests/test_interactive_job.py

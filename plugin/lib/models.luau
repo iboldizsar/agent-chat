@@ -1,3 +1,4 @@
+--!nonstrict
 -- Backend-scoped model decorations; discovery remains authoritative.
 local M = {}
 function M.find(models, key)

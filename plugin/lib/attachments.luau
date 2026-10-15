@@ -1,3 +1,4 @@
+--!nonstrict
 local M = {}
 local running = {}
 local serial = 0

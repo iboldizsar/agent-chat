@@ -1,3 +1,4 @@
+--!nonstrict
 local C = require("./lib/common.luau")
 local Models = require("./lib/models.luau")
 local OpenCode = require("./lib/opencode.luau")
@@ -31,6 +32,7 @@ local visible = false
 local wasBusy = {}
 local function changed() dirty = true end
 local setup = require("./lib/setup.luau").new(noctalia, changed)
+local context = require("./lib/context.luau").new(noctalia, cwd, changed)
 -- Unreadable/future preferences are handled by recovery, never by onboarding.
 local showSetup = prefs.setupCompleted == false and preferenceStore.writable
 local setupDismissed = false
@@ -88,12 +90,15 @@ local function publish()
     preferenceStore.save()
     if priorWarning ~= preferenceStore.warning then dirty = true end
 end
+local contextWaiting = {}
 local function connect(name)
-    if not noctalia.fileExists(cwd .. "/AGENTS.md") then
-        adapters[name].state.error = "Assistant context is not installed. Run the documented setup, then Retry."
-        changed(); return
-    end
-    connected[name] = true; adapters[name].connect()
+    if contextWaiting[name] then return end
+    contextWaiting[name] = true
+    context.ensure(function(ready, message)
+        contextWaiting[name] = nil
+        if ready then connected[name] = true; adapters[name].connect()
+        else adapters[name].state.error = message; changed() end
+    end)
 end
 handle = function(req)
     if type(req) ~= "table" then return end
@@ -325,6 +330,7 @@ end
 noctalia.state.watch("chat_command", handle)
 noctalia.setUpdateInterval(100)
 function update()
+    context.tick()
     setup.tick()
     Attachments.tick()
     for _, a in pairs(adapters) do a.tick() end
@@ -333,6 +339,7 @@ function update()
     end
 end
 function onExit(_, reason)
+    context.close()
     setup.close()
     publish()
     for _, a in pairs(adapters) do a.close(reason) end

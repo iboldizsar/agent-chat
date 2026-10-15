@@ -1,3 +1,4 @@
+--!nonstrict
 local M = {}
 -- Accept legacy pin timestamps in either backend's units; adapters normalize new rows.
 function M.seconds(value)

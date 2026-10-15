@@ -1,3 +1,4 @@
+--!nonstrict
 local M = {}
 function M.new()
     local serial, active = 0, nil

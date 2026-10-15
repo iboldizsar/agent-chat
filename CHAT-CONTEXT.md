@@ -358,3 +358,8 @@ On user “go on”, completed capture tool checks/instructions, bounded raster 
 ## Milestone 0.8.0 accepted — 2026-10-15
 
 User confirmed “works” after the installed preview, screenshot and history checklist. Recorded 0.8.0 acceptance; no further tests, inference, deployment or merge. Branch remains milestone/0.8.0. Deferred second-laptop/restart/outage gates remain open for 1.0.
+
+
+## Milestone 0.9.0 started — 2026-10-15
+
+User requested merging accepted 0.8.0 into main and creating milestone/0.9.0, then starting work. Main fast-forwarded to 1857395. User chose GitHub identity https://github.com/iboldizsar; public id will be iboldizsar/agent-chat. First slice adds safe default assistant-context preparation for store installs, canonical in-payload context, public plugin README/license/dependency metadata/tags/nonstrict directives and isolated scripts/community.py staging for the public namespace/API33. Installed local/agent-chat remains accepted 0.8.0/API27 with no private-state changes. 45 Python tests and 13 Lua suites plus syntax/lint pass. Review payload staged at dist/community-0.9-work/agent-chat; thumbnail, API compatibility/migration and integration polish remain pending (docs/MILESTONE-0.9.0.md and docs/SUBMISSION.md). Usage 79% five-hour/12% weekly; stopped at this bounded slice to conserve allowance. No model prompts, installation, desktop restart, publishing or PR.

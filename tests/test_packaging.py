@@ -23,6 +23,7 @@ def module(name, file):
 installer = module('installer', 'install.py')
 packager = module('packager', 'package.py')
 doctor = module('doctor', 'doctor.py')
+community = module('community', 'community.py')
 
 
 class PackagingTests(unittest.TestCase):
@@ -121,3 +122,29 @@ class PackagingTests(unittest.TestCase):
     def test_doctor_rejects_unsupported_opencode_v1(self):
         with patch.object(doctor.shutil, 'which', side_effect=lambda name: name if name in ('noctalia', 'opencode') else None), patch.object(doctor, 'version', side_effect=lambda name: 'noctalia v5.2.1' if name == 'noctalia' else 'opencode v1.19.0'), contextlib.redirect_stdout(io.StringIO()):
             self.assertFalse(doctor.check('opencode'))
+
+
+class CommunityStagingTests(unittest.TestCase):
+    def test_staging_is_self_contained_and_rewrites_identity_only_in_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = community.stage(Path(directory) / 'review')
+            metadata = installer.tomllib.loads((target / 'plugin.toml').read_text())
+            self.assertEqual(metadata['id'], 'iboldizsar/agent-chat')
+            self.assertEqual(metadata['author'], 'iboldizsar')
+            self.assertEqual(metadata['plugin_api'], 33)
+            self.assertIn('iboldizsar/agent-chat:fullscreen', (target / 'README.md').read_text())
+            self.assertNotIn('local/agent-chat', (target / 'service.luau').read_text())
+            self.assertTrue((target / 'assets/assistant-AGENTS.md').is_file())
+            self.assertTrue((target / 'helper/context.py').is_file())
+            self.assertFalse((target / 'preferences.json').exists())
+            self.assertEqual(installer.manifest()['id'], 'local/agent-chat')
+            self.assertEqual(community.blockers(target), ['Missing 960x540 thumbnail.webp from a real screenshot'])
+            with self.assertRaises(ValueError):
+                community.stage(Path(directory) / 'review')
+
+    def test_bad_identity_or_incompatible_api_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for author, api in [('Bad/Name', 33), ('valid', 26)]:
+                with self.assertRaises(ValueError):
+                    community.stage(directory, author, api)
+            self.assertFalse((Path(directory) / 'agent-chat').exists())

@@ -1,3 +1,4 @@
+--!nonstrict
 local M = {}
 function M.json(value) return noctalia.json.encode(value) end
 function M.decode(value) return noctalia.json.decode(value or "") end

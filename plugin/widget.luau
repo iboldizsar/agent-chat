@@ -1,3 +1,4 @@
+--!nonstrict
 local snapshot = noctalia.state.get("chat_snapshot")
 local function render()
     local status = "idle"

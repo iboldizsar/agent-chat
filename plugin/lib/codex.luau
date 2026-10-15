@@ -1,3 +1,4 @@
+--!nonstrict
 local C = require("./common.luau")
 local Conversations = require("./conversations.luau")
 local Connection = require("./connection.luau")

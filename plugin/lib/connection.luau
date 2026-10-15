@@ -1,3 +1,4 @@
+--!nonstrict
 -- One in-flight connection attempt, generation guards and bounded automatic recovery.
 local M = {}
 function M.new(now, random)

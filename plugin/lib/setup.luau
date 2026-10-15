@@ -1,3 +1,4 @@
+--!nonstrict
 -- Bounded, metadata-only discovery from the actual Noctalia process environment.
 local M = {}
 function M.new(api, changed)

@@ -91,7 +91,7 @@ def install(home, apply=False, uninstall=False):
         if not context.exists() and not context.is_symlink():
             fd = os.open(context, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
             with os.fdopen(fd, 'w') as out:
-                out.write((ROOT / 'docs/assistant-AGENTS.md').read_text())
+                out.write((ROOT / 'plugin/assets/assistant-AGENTS.md').read_text())
         if exists:
             destination.rename(previous)
         try:

@@ -1,3 +1,4 @@
+--!nonstrict
 local function render(snapshot)
     local active = false
     for _, status in pairs(snapshot and snapshot.background or {}) do

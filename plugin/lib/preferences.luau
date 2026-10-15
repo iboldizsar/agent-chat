@@ -1,3 +1,4 @@
+--!nonstrict
 -- Preferences are metadata/drafts only. Never silently replace unreadable saved state.
 local M = {}
 M.schemaVersion = 1
