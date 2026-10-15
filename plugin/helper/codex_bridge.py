@@ -91,7 +91,7 @@ class Codex:
             self.reader = threading.Thread(target=self.read, args=(self.process,), daemon=True)
             self.reader.start()
             self.call('initialize', {'clientInfo': {'name': 'noctalia_agent_chat',
-                      'title': 'Agent Chat', 'version': '0.9.1'}}, start=False)
+                      'title': 'Agent Chat', 'version': '0.9.2'}}, start=False)
             self.write({'method': 'initialized'})
 
     def write(self, value):

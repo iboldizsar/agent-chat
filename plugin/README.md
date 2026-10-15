@@ -46,6 +46,8 @@ Choose OpenCode/Codex in the title dropdown and a model in the main header. Favo
 
 Enter sends; Shift+Enter inserts a newline. Esc hides without stopping work; Stop cancels a response. Ctrl+N starts a chat, Ctrl+H toggles history, Ctrl+M chooses a model, Ctrl+, opens options, Ctrl+Shift+A attaches a file, Ctrl+Shift+V pastes an image, Ctrl+Shift+X stops, Ctrl+Shift+F changes layout, and Ctrl+Shift+/ shows help. These shortcuts are panel-local. No compositor shortcut is registered automatically.
 
+Consecutive command/tool records are collapsed into one Activity summary. Expand it to inspect commands/results; running/failure hints remain visible. Permission prompts and questions stay visible separately. Markdown exports retain the original activity records.
+
 Attachments are limited to 8 MiB each. Supported images have thumbnails and larger previews. Other files are local references the assistant can read with its tools; arbitrary documents are not automatically ingested as text. For screenshots, choose Copy and close Noctalia's annotation editor; cancellation or identical clipboard content attaches nothing new. Markdown export is in the header, uses Save As, and never opens the file automatically.
 
 ## Settings

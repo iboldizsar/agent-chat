@@ -274,3 +274,11 @@ for _, backend in ipairs({ 'codex', 'opencode' }) do
     assert(success == false and adapter.state.historyError and adapter.state.session == 'keep-current')
 end
 print('History row deletion targets its ID without switching or clearing the current chat: passed')
+
+queue = {}
+cold.open('tool-metadata')
+rpc('thread/resume', { model = 'test', thread = { id = 'tool-metadata', turns = {}, status = { type = 'idle' } } })
+rpc('thread/items/list', { data = { { id = 'command-failed', type = 'commandExecution', status = 'completed', exitCode = 1 } } })
+path('/pending', { pending = {}, usage = {} })
+assert(cold.state.messages[1].activityKind == 'commandExecution' and cold.state.messages[1].activityStatus == 'failed')
+print('Nonzero command exit codes remain visible in compact activity summaries: passed')

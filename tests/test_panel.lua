@@ -140,6 +140,19 @@ for _, filename in ipairs({ "panel.luau", "fullscreen.luau" }) do
     count = #commands; press("ctrl+shift+x"); assert(#commands == count, "idle stop is a no-op")
     press("ctrl+shift+f")
     assert(closes > 0 and toggles[#toggles] == (filename == "fullscreen.luau" and "iboldizsar/agent-chat:panel" or "iboldizsar/agent-chat:fullscreen"))
+    snapshot.current.messages = {
+        { id = 'tool1', role = 'Tool', text = 'commandExecution · completed', details = 'command output one', activityKind = 'commandExecution' },
+        { id = 'tool2', role = 'Tool', text = 'commandExecution · completed', details = 'command output two', activityKind = 'commandExecution' },
+        { id = 'answer', role = 'Assistant', text = 'Final answer', details = '' },
+    }
+    snapshot.current.requests = { { id = 'approval', kind = 'permission', title = 'Approval still visible' } }
+    env.onOpen()
+    assert(hasText('Activity · 2 commands') and hasText('Final answer') and hasText('Approval still visible'))
+    assert(not hasText('commandExecution · completed') and not hasText('command output one'))
+    assert(click(lastTree, 'activity-tool1'))
+    assert(hasText('command output one') and hasText('command output two'))
+    assert(click(lastTree, 'activity-tool1') and not hasText('command output one'))
+    snapshot.current.messages = {}; snapshot.current.requests = {}
     snapshot.current.attachments = { { name = '日本語 image.png', path = '/private/image.png', image = true, size = 2048 } }
     snapshot.current.models = { { key = 'text', label = 'Text', modalities = { 'text' } } }
     snapshot.current.model = 'text'

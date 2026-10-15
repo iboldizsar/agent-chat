@@ -148,15 +148,19 @@ function M.new(cwd, changed)
                 table.insert(out, C.message(m.id, "You", m.text))
                 if full then out[#out].text = m.text or "" end
             elseif m.type == "assistant" then
-                local text, detail = {}, {}
+                local text, detail, activityStatus = {}, {}, nil
                 for _, part in ipairs(m.content or {}) do
                     if part.type == "text" then table.insert(text, part.text)
                     elseif part.type == "tool" then
+                        local status = (part.state or {}).status
+                        if status == "error" or status == "failed" then activityStatus = "failed"
+                        elseif activityStatus ~= "failed" and (status == "running" or status == "pending") then activityStatus = status end
                         table.insert(detail, part.name .. " · " .. (part.state.status or "") .. "\n" .. C.text(part.state):sub(1, 12000))
                     end
                 end
                 if m.error then table.insert(detail, C.text(m.error)) end
                 table.insert(out, C.message(m.id, "Assistant", table.concat(text, "\n"), table.concat(detail, "\n\n")))
+                out[#out].activityStatus = m.error and "failed" or activityStatus
                 if full then out[#out].text = table.concat(text, "\n") end
             end
         end

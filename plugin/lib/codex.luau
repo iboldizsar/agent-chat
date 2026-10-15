@@ -48,6 +48,7 @@ function M.new(cwd, changed)
             detail = C.text(item):sub(1, 16000)
         end
         local value = C.message(item.id, role, text, detail)
+        if role == "Tool" then value.activityKind = item.type; value.activityStatus = item.exitCode and item.exitCode ~= 0 and "failed" or item.status end
         if full then value.text = text end
         return value
     end
@@ -55,7 +56,7 @@ function M.new(cwd, changed)
         local value = project(item)
         if not value then return end
         local row = messageIndex[value.id]
-        if row then row.text = value.text; row.details = value.details
+        if row then row.text = value.text; row.details = value.details; row.activityKind = value.activityKind; row.activityStatus = value.activityStatus
         else messageIndex[value.id] = value; table.insert(s.messages, value) end
     end
     local function pending(values)

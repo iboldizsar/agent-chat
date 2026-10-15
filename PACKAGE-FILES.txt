@@ -31,6 +31,7 @@ plugin/lib/panel.luau
 plugin/lib/preferences.luau
 plugin/lib/setup.luau
 plugin/lib/usage.luau
+plugin/lib/transcript.luau
 plugin/panel.luau
 plugin/plugin.toml
 plugin/service.luau
@@ -63,5 +64,6 @@ tests/test_panel.lua
 tests/test_preferences.lua
 tests/test_setup.lua
 tests/test_usage.lua
+tests/test_transcript.lua
 tests/test_runtime_check.py
 tests/test_service.lua

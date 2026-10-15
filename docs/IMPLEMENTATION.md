@@ -224,3 +224,8 @@ Runtime changes and public-ID migration are installed: iboldizsar/agent-chat 0.9
 ## 0.9.1 history-row deletion — 2026-10-15
 
 Added a trash button beside Pin on every history row and a named inline confirmation. Both adapters accept an explicit target ID; deleting another row leaves the selected chat/draft intact. Duplicate deletion requests are suppressed, active/offline states are guarded, and pins/drafts are removed only on success. Focused adapter/service/panel and packaging checks pass; installed candidate 0.9.1 renders both layouts. Previous payload: ~/.local/state/agent-chat/install-backups/20261015T120223306202Z/plugin/. No actual user chat was deleted during verification.
+
+
+## 0.9.2 compact activity — 2026-10-15
+
+Consecutive command/tool entries now appear as one collapsed Activity indicator, showing count and known running/failure state. Expand for full retained command/result details. OpenCode tool-only assistant records are grouped and empty assistant placeholders hidden. Approvals/questions remain separate and visible; export/history storage is unchanged. Focused grouping/adapter/panel/packaging tests and syntax/lint pass. Installed while idle; rollback payload ~/.local/state/agent-chat/install-backups/20261015T120753760109Z/plugin/.

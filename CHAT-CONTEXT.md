@@ -394,3 +394,8 @@ User confirmed “looks good to me” after public-ID migration, launch controls
 ## History row deletion — 2026-10-15
 
 User requested Delete next to Pin in chat history. Implemented named inline confirmation and target-ID deletion in both adapters without opening the target or disturbing another current chat. Service guards active/offline/recovering states, suppresses duplicate submissions, and removes origin pins/drafts only after successful deletion. Failed deletions retain them. Added target/failure/deduplication and both-layout confirmation tests; focused suites, 11 packaging tests, syntax/lint pass. Installed 0.9.1 while idle; prior payload backup 20261015T120223306202Z. Both native layouts render and config validates; rebuilt the 0.9.1 archive. No real conversation was deleted for testing, no inference or push.
+
+
+## Compact transcript activity — 2026-10-15
+
+User requested hiding raw command rows behind compact expandable Activity. Added presentation-only grouping for consecutive tool records and empty OpenCode assistant/tool messages, suppressing empty assistant placeholders. Codex metadata carries activity kind/status, including failed nonzero exits. Activity summaries show command/step counts and running/failure hints; approval/question forms stay visible outside groups. Backend history and Markdown export records are unchanged. Grouping, both-layout collapse/expand/approval visibility, adapter failure metadata and packaging checks pass; syntax/lint pass. Installed 0.9.2 while idle with previous payload backup 20261015T120753760109Z. No inference, history deletion, transcript mutation or push.

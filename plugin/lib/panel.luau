@@ -3,6 +3,7 @@ local M = {}
 function M.mount(fullscreen)
 local C = require("./common.luau")
 local Usage = require("./usage.luau")
+local Transcript = require("./transcript.luau")
 local Conversations = require("./conversations.luau")
 local Models = require("./models.luau")
 local snapshot = noctalia.state.get("chat_snapshot")
@@ -570,8 +571,25 @@ render = function()
     else
         local conversation = {}
         if s.messageCursor then table.insert(conversation, button("Earlier messages", function() command("older") end, { glyph = "chevron-up" })) end
-        for _, m in ipairs(s.messages) do
-            if m.role == "You" then
+        for _, m in ipairs(Transcript.rows(s.messages)) do
+            if m.role == "Activity" then
+                local expansionKey = s.backend .. ":" .. s.session .. ":" .. m.id
+                local summary, failed = Transcript.summary(m)
+                local content = { button(summary, function() expanded[expansionKey] = not expanded[expansionKey]; render() end,
+                    { key = m.id, glyph = expanded[expansionKey] and "chevron-up" or "terminal-2", contentAlign = "start",
+                        tooltip = expanded[expansionKey] and "Hide activity details" or "Inspect commands and tool results", variant = failed and "secondary" or "ghost" }) }
+                if expanded[expansionKey] then
+                    local details = {}
+                    for _, item in ipairs(m.items) do
+                        table.insert(details, label(item.text, { fontSize = 12, color = "on_surface_variant", maxLines = 3 }))
+                        table.insert(details, label(item.details ~= "" and item.details or item.text,
+                            { fontFamily = "monospace", fontSize = 12, maxLines = 80 }))
+                    end
+                    table.insert(content, ui.scroll({ key = "details-" .. m.id, height = 220, gap = 8, padding = 12,
+                        radius = 10, fill = cardFill("surface_variant", 0.3) }, details))
+                end
+                table.insert(conversation, ui.column({ key = m.id .. "-group", gap = 6 }, content))
+            elseif m.role == "You" then
                 local width = math.min(historyOpen and 400 or 540, math.max(120, #m.text * 7 + 28))
                 table.insert(conversation, ui.row({ key = m.id, gap = 6, align = "center" }, {
                     ui.spacer({}),
