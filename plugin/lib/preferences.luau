@@ -76,6 +76,10 @@ function M.open(api, path)
         if api.fileExists(temporary) then
             -- A failed/interrupted write may hold the newest unsaved draft.
             store.writable = false
+            local readOK, pending = pcall(api.readFile, temporary)
+            if readOK and preserve(pending) then
+                store.canReset = true; store.pendingRaw = pending
+            end
             store.warning = "An unfinished preferences write was found. Saved files were preserved; recovery is needed before saving."
             return false
         end
@@ -87,6 +91,7 @@ function M.open(api, path)
         local renameOK, renamed = pcall(api.renameFile, temporary, path)
         if not renameOK or not renamed then
             store.writable = false
+            if preserve(encoded) then store.canReset = true; store.pendingRaw = encoded end
             store.warning = "Could not finish saving preferences. Both the previous and pending files were preserved."
             return false
         end
@@ -95,6 +100,19 @@ function M.open(api, path)
     end
     function store.reset()
         if not store.canReset then return false end
+        if store.pendingRaw then
+            local readOK, pending = pcall(api.readFile, path .. ".writing")
+            if not readOK or pending ~= store.pendingRaw then
+                store.warning = "The pending preferences file changed. Reload before recovering; saved files are untouched."
+                return false
+            end
+            local removedOK, removed = pcall(api.removeFile, path .. ".writing")
+            if not removedOK or not removed then
+                store.warning = "Could not clear the preserved pending file. Saved files are untouched."
+                return false
+            end
+            store.pendingRaw = nil
+        end
         store.writable = true; store.canReset = false; store.warning = nil
         return store.save()
     end

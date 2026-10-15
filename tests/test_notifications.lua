@@ -23,3 +23,11 @@ s.busy = false; s.connected = false; update("codex", s, true); assert(#sent == 2
 s.connected = true; s.busy = true; update("codex", s, true)
 config.notify_completion = false; s.busy = false; update("codex", s, true); assert(#sent == 2)
 print("Notification transitions, privacy, actions and toggles: passed")
+
+config.notify_completion = true
+s.error = ''; s.busy = true; update('codex', s, true)
+s.connected = false; update('codex', s, true)
+s.connected = true; s.recovering = true; update('codex', s, true)
+s.busy = false; update('codex', s, true)
+s.recovering = false; update('codex', s, true)
+assert(#sent == 2, 'transport/session recovery must not masquerade as completed work')

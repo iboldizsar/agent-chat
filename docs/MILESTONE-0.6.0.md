@@ -2,9 +2,9 @@
 
 Branch: `milestone/0.6.0`  
 Baseline: 0.5.0  
-Status: in progress; development changes are not installed into the live plugin
+Status: implementation candidate ready for validation; not yet deployed
 
-This is the first milestone from [the 1.0 plan](V1-PLAN.md). Keep existing UI decisions and private state. No live backend inference, desktop restart, migration of the real preferences file, release rebuild or deployment is needed for its initial implementation slices. Bump the manifest/helper metadata together when the milestone is ready, rather than labeling incomplete work a 0.6.0 release.
+This is the first milestone from [the 1.0 plan](V1-PLAN.md). Keep existing UI decisions and private state. No live backend inference, desktop restart, migration of the real preferences file, release rebuild or deployment is needed for its initial implementation slices. Manifest/helper metadata now identify the 0.6.0 candidate; release packaging follows validation. Existing 0.5.0 release archives are unchanged.
 
 ## Progress
 
@@ -15,12 +15,13 @@ This is the first milestone from [the 1.0 plan](V1-PLAN.md). Keep existing UI de
 - [x] Use a same-directory pending file plus rename for recoverable preference saves.
 - [x] Expose persistence failures/recovery without overwriting backend errors.
 - [x] Test preference failure paths without touching real private data.
-- [ ] Add interactive-job ownership, process-exit recovery and stale-focus guards.
-- [ ] Separate connection/recovery state from conversation activity.
-- [ ] Guard concurrent/stale connect/discovery/history callbacks consistently.
-- [ ] Introduce bounded reconnect/backoff behavior without prompt replay.
-- [ ] Expand metadata-only diagnostics for operations and connection state.
-- [ ] Complete milestone-wide adapter/fault tests and targeted native UI validation.
+- [x] Add interactive-job ownership, process-exit recovery and stale-focus guards.
+- [x] Separate connection/recovery state from conversation activity.
+- [x] Guard concurrent/stale connect/discovery/history callbacks consistently.
+- [x] Introduce bounded reconnect/backoff behavior without prompt replay.
+- [x] Expand metadata-only diagnostics for operations and connection state.
+- [x] Complete milestone-wide adapter/fault tests.
+- [ ] Complete joint native UI/backend validation after implementation, as requested.
 
 ## Capability inventory
 
@@ -71,7 +72,7 @@ Rules: a disconnected transport does not prove completion or cancellation; a con
 
 ### Recovery boundaries
 
-This slice does not automatically merge an interrupted `.writing` file with the original. Both are preserved and saving remains blocked; inspect/recover them privately while the plugin is disabled. A dedicated interrupted-write recovery interaction can be added in the next slice. Likewise, original reads that fail and backups that cannot be written do not enable a destructive reset.
+An interrupted `.writing` file is copied privately before explicit recovery can discard the pending file. Recovery refuses if that file changed since the copy, and does not automatically merge drafts from the previous and pending snapshots. The original/pending recovery copies remain available for private inspection. Read failures or backups that cannot be written never enable a destructive reset; newer schemas remain read-only.
 
 The existing data-directory privacy setup remains in effect. Same-directory rename is a recoverable replacement strategy, not a guarantee against power loss without filesystem flushes. Do not claim power-loss durability from these tests.
 
@@ -83,8 +84,18 @@ Run existing Python, adapter, panel, notification, attachment and export suites 
 
 Native fault testing, app restarts and deployment remain separate from this offline development slice. Preserve the user's currently working desktop session.
 
-## Next slice
+## Completed runtime work
 
-Introduce an operation registry for picker/capture/Save As jobs. It must deliver completion once, detect helpers that exit without JSON, clear pending state on failure, retain originating backend/session/layout, and avoid reopening stale chat views after a newer user navigation. Reuse the proven unbounded interactive transport rather than reintroducing the captured-command timeout.
+Interactive helpers now run under `interactive_job.py`, which returns a single result for success, cancellation, launch failure, invalid output or a child crash. It owns the child process group and terminates it on supervisor teardown. Heartbeats distinguish a live user-controlled dialog from a helper that has stopped responding: the Lua runner has a 15-second liveness bound, not a total browsing deadline. It ignores duplicate/late completion after failure. An ownership registry serializes desktop dialogs and records backend/session/navigation identity. A late result cannot attach to a different selected conversation, and completion cannot reopen a view after a newer user navigation.
 
-Initial-slice verification: all 27 Python tests, six Lua fixture suites (including preference faults), Noctalia manifest lint and service syntax checks passed. No live desktop/backend state was modified.
+Connection controllers serialize attempts, invalidate expired generations and apply exponential backoff with jitter, capped at 30 seconds and eight failed attempts before manual recovery. Connection attempts have a 20-second startup deadline. Stale health/HTTP/SSE/history callbacks cannot revive an old connection or replace newer search results. Mutating submissions and exports get an ambiguous-outcome error rather than a replay or permanently stuck callback. Backend conversations remain authoritative.
+
+Restored conversations stay gated until messages, activity and pending permissions/questions have been read. Recovery failure retains the draft and leaves explicit Reconnect available. Repeated in-flight permission replies are suppressed, while an explicit retry is allowed after a failure. Late rename/delete/agent operations cannot overwrite newly selected chat state.
+
+Activity is represented separately from connection state, including submitting, recovering, running, waiting, stopping, completed, interrupted and usage-paused. Disconnect/recovery does not emit false success notifications or turn the bar into an unread-finished state. IPC diagnostics add candidate version, schema/write status, pending operation, retry/recovery/activity fields and error presence; raw backend error text is excluded.
+
+## Joint validation next
+
+The user requested completing implementation before live checks. The candidate remains separate from the working installation until validation staging. Follow [VALIDATE-0.6.0.md](VALIDATE-0.6.0.md). Tests run during development are offline fixtures, fake processes and isolated installation checks, not real provider inference.
+
+Do not merge this branch or label the release fully validated until the native checks have outcomes. Native process/compositor behavior is not proven by fixture tests.

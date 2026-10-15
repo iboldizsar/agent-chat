@@ -166,7 +166,7 @@ local function toggleHistory()
     historyOpen = view ~= "chat" or not historyOpen; view = "chat"; render()
 end
 local function toggleModels()
-    if not snapshot or snapshot.sending or snapshot.current.busy then return end
+    if not snapshot or snapshot.sending or snapshot.current.busy or snapshot.current.recovering then return end
     view = view == "models" and "chat" or "models"; render()
 end
 local function toggleBackend()
@@ -174,7 +174,7 @@ local function toggleBackend()
     view = view == "backends" and "chat" or "backends"; render()
 end
 local function newChat()
-    if not snapshot or snapshot.sending or snapshot.current.busy then return end
+    if not snapshot or snapshot.sending or snapshot.current.busy or snapshot.current.recovering then return end
     command("new"); armedDelete = false; view = "chat"; render()
 end
 local function toggleOptions()
@@ -187,6 +187,7 @@ local function toggleHelp()
     view = view == "shortcuts" and "chat" or "shortcuts"; render()
 end
 local function attachFile(mode)
+    if snapshot and snapshot.interactiveJob then return end
     -- Release the layer-shell keyboard grab before opening an external window.
     panel.close()
     command("attach", mode or "pick", { returnPanel = fullscreen and "local/agent-chat:fullscreen" or "local/agent-chat:panel" })
@@ -213,7 +214,7 @@ render = function()
     end
     local s = snapshot.current
     local model = C.selected(s)
-    local idle = not s.busy and not snapshot.sending
+    local idle = not s.busy and not snapshot.sending and not s.recovering and #s.requests == 0
     local backendName = s.backend == "codex" and "Codex" or "OpenCode"
     local header = ui.row({ gap = 8, align = "center" }, {
         icon(historyOpen and "layout-sidebar-left-collapse" or "layout-sidebar-left-expand", "Chat history · Ctrl+H", toggleHistory, { selected = historyOpen }),
@@ -225,13 +226,22 @@ render = function()
         icon("download", s.exporting and "Exporting Markdown…" or "Export Markdown…", function()
             panel.close()
             command("export", nil, { returnPanel = fullscreen and "local/agent-chat:fullscreen" or "local/agent-chat:panel" })
-        end, { enabled = idle and s.session ~= "" and not s.exporting, key = "export-markdown" }),
+        end, { enabled = idle and s.session ~= "" and not s.exporting and not snapshot.interactiveJob, key = "export-markdown" }),
         icon("adjustments-horizontal", "Chat options · Ctrl+,", toggleOptions, { selected = view == "options", key = "chat-options" }),
         icon(fullscreen and "arrows-minimize" or "arrows-maximize", (fullscreen and "Windowed" or "Full screen") .. " · Ctrl+Shift+F", toggleFullscreen),
         icon("keyboard", "Keyboard shortcuts · Ctrl+Shift+/", toggleHelp),
         icon("x", "Close · Esc", function() panel.close() end),
     })
     local nodes = { header, ui.separator({ color = "outline/0.35", thickness = 1 }) }
+    if s.connection and (s.connection.phase ~= "connected" or s.recovering) then
+        local phase = s.connection.phase
+        local text = s.recoveryFailed and "Conversation recovery failed. Reconnect to try again; your draft is retained." or
+            (s.recovering and s.connected and "Restoring conversation and pending requests…" or
+            (phase == "connecting" and "Connecting…" or (phase == "reconnecting" and
+                "Reconnecting · attempt " .. tostring(s.connection.attempt) .. " · messages are not resent" or
+                "Offline · reconnect when the service is available")))
+        table.insert(nodes, label(text, { fontSize = 12, color = "on_surface_variant", maxLines = 2 }))
+    end
     if snapshot.preferences and snapshot.preferences.warning then
         table.insert(nodes, ui.column({ gap = 6, padding = 10, fill = "error/0.08", radius = 10 }, {
             label(snapshot.preferences.warning, { fontSize = 12, color = "error", maxLines = 3 }),
@@ -396,7 +406,7 @@ render = function()
                     else armedRecovery = true; render() end
                 end, { variant = armedRecovery and "destructive" or "secondary" }))
                 if armedRecovery then
-                    table.insert(recovery, hint("The unreadable original is kept in a private recovery copy. This saves your current choices and drafts as the new preferences."))
+                    table.insert(recovery, hint("Previous saved files are kept as private recovery copies. This saves your current choices and drafts as the new preferences."))
                     table.insert(recovery, button("Cancel", function() armedRecovery = false; render() end))
                 end
             end
@@ -405,7 +415,7 @@ render = function()
         table.insert(settings, section("Connection & appearance", {
             settingRow(s.connected and (backendName .. " is connected") or (backendName .. " is disconnected"),
                 s.connected and "Ready for messages." or "Reconnect to restore access to your chats.",
-                button("Reconnect", function() command("retry") end, { glyph = "refresh", enabled = idle,
+                button("Reconnect", function() command("retry") end, { glyph = "refresh", enabled = not snapshot.sending and not (s.connection and s.connection.startedAt),
                     tooltip = "Reconnect without resending messages", variant = "secondary" })),
             ui.separator({ color = "outline/0.2" }),
             settingRow("Plugin preferences", "Transparency, notifications, history and launch behavior.",
@@ -514,11 +524,11 @@ render = function()
             ui.spacer({}),
         }
         if s.busy or snapshot.sending or #s.requests > 0 then
-            table.insert(toolbar, label(s.status == "waiting" and "Waiting for you" or "Working…", { fontSize = 12, color = "tertiary" }))
+            table.insert(toolbar, label(s.activity == "interrupted" and "Interrupted · reconnect" or (s.activity == "stopping" and "Stopping…" or (s.status == "waiting" and "Waiting for you" or "Working…")), { fontSize = 12, color = "tertiary" }))
             table.insert(toolbar, icon("player-stop", "Stop response · Ctrl+Shift+X", function() command("stop") end,
                 { variant = "secondary", enabled = s.busy or #s.requests > 0 }))
         elseif not s.connected then
-            table.insert(toolbar, label("Disconnected", { fontSize = 12, color = "error" }))
+            table.insert(toolbar, label(s.connection and (s.connection.phase == "connecting" or s.connection.phase == "reconnecting") and "Connecting…" or "Disconnected", { fontSize = 12, color = "error" }))
         end
         table.insert(toolbar, icon("arrow-up", "Send message", function() command("send") end,
             { variant = "primary", enabled = s.connected and idle and not s.limitPaused and not (s.usage or {}).blocked and s.draft:match("%S") ~= nil, key = "send-message" }))

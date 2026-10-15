@@ -9,13 +9,14 @@ function require(path)
 end
 local queue, fixtures, eventCallbacks = {}, {}, {}
 local serial = 0
+local clock = 100000
 noctalia = {
     json = { encode = function(x) serial = serial + 1; local key = "json-" .. serial; fixtures[key] = x; return key end, decode = function(x) return type(x) == "table" and x or fixtures[x] end },
     string = { urlEncode = function(x) return x end },
     expandPath = function(x) return x end,
     readFile = function() return { url = "http://127.0.0.1:1234", password = "test", token = "test", cwd = "/assistant" } end,
     pluginDir = function() return root .. "/plugin" end,
-    nowMs = function() return 100000 end,
+    nowMs = function() return clock end,
     runAsync = function(_, cb) if cb then cb({}) end; return true end,
     http = function(r, cb) table.insert(queue, { request = r, callback = cb }); return true end,
     httpStream = function(_, cb) table.insert(eventCallbacks, cb); return { stop = function() end } end,
@@ -126,3 +127,66 @@ assert(exportPage.url:find('/api/session/own/message?', 1, true))
 assert(openCodeExport[1].text == 'Original' and openCodeExport[2].text == 'Recent')
 assert(o.state.messages == beforeOpenCode)
 print('Both backends export full pages without modifying chat state: passed')
+
+queue = {}
+local failedExport
+a.export(function(rows, err) assert(not rows); failedExport = err end)
+fixtures.disconnect = { seq = 7, method = 'bridge/disconnected' }
+eventCallbacks[1]('data:disconnect')
+rpc('thread/items/list', { data = {} })
+assert(failedExport and failedExport:find('not repeated'), 'connection loss must finish pending export instead of leaving it stuck')
+queue = {}
+local oldGeneration = o.state.connection.attempt
+o.connect(); o.connect()
+local connectionRequests = 0
+for _, q in ipairs(queue) do if q.request.url:find('/api/info', 1, true) then connectionRequests = connectionRequests + 1 end end
+assert(connectionRequests == 1, 'repeated Retry must not overlap OpenCode connections')
+print('Adapter failure completion and duplicate connect prevention: passed')
+
+queue = {}
+a.connect(); clock = clock + 20001; a.tick()
+assert(not a.state.connected)
+path('/health', {})
+assert(not a.state.connected, 'a timed-out health response must not revive a stale connection')
+queue = {}
+clock = clock + 40000; a.tick(); path('/health', {})
+queue = {}
+a.open('recover')
+rpc('thread/resume', { model = 'test', thread = { id = 'recover', status = { type = 'idle' }, turns = {} } })
+assert(a.state.recovering)
+rpc('thread/items/list', { data = {} })
+assert(a.state.recovering, 'messages alone are insufficient without pending-request recovery')
+path('/pending', { pending = {}, usage = {} })
+assert(not a.state.recovering)
+queue = {}
+a.list('old'); a.list('new')
+rpc('thread/list', { data = { { id = 'stale', name = 'Old' } } })
+rpc('thread/list', { data = { { id = 'fresh', name = 'New' } } })
+assert(#a.state.sessions == 1 and a.state.sessions[1].id == 'fresh', 'late search results must not replace the new search')
+queue = {}
+o.tick(); o.connect(); path('/api/info', {})
+queue = {}
+o.open('recover')
+path('/api/session/recover', { data = { id = 'recover', location = { directory = '/assistant' } } })
+assert(o.state.recovering)
+path('/message?', { data = {} }); path('/active', { data = {} }); path('/permission', { data = {} })
+assert(o.state.recovering)
+path('/form', { data = {} })
+assert(not o.state.recovering, 'OpenCode recovery requires messages, activity, permissions and questions')
+print('Timed-out connection, authoritative recovery gates and stale history search: passed')
+
+queue = {}
+a.rename('Old renamed'); a.new(); a.state.title = 'Keep new title'
+rpc('thread/name/set', {})
+assert(a.state.title == 'Keep new title', 'late rename must not rename a newer conversation')
+queue = {}
+a.state.session = 'delete-old'; local deleted = false
+a.delete(function() deleted = true end); a.new(); a.state.session = 'keep-new'
+rpc('thread/delete', {})
+assert(deleted and a.state.session == 'keep-new', 'late delete must not clear a newly selected conversation')
+queue = {}
+o.state.busy = false; o.state.session = 'delete-old'; deleted = false
+o.delete(function() deleted = true end); o.new(); o.state.session = 'keep-new'
+path('/api/session/delete-old', {})
+assert(deleted and o.state.session == 'keep-new')
+print('Late rename/delete completion preserves newly selected conversations: passed')

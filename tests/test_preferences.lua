@@ -22,6 +22,7 @@ local function host(initial)
         if api.failRename then return false end
         files[to] = files[from]; files[from] = nil; return true
     end
+    api.removeFile = function(path) files[path] = nil; return true end
     api.fileExists = function(path) return files[path] ~= nil end
     api.nowMs = function() return 123 end
     if initial ~= nil then files.prefs = type(initial) == 'string' and initial or api.json.encode(initial) end
@@ -62,6 +63,9 @@ api.failRename = false
 local restarted = M.open(api, 'prefs')
 assert(restarted.value.drafts.x == 'saved' and not restarted.save())
 assert(files['prefs.writing'], 'restart must preserve an interrupted write for recovery')
+assert(restarted.canReset and restarted.reset())
+assert(not files['prefs.writing'] and files[restarted.backupPath], 'explicit pending-file recovery must keep its private backup')
+
 
 api, files = host({ drafts = { x = 123 } })
 store = M.open(api, 'prefs')

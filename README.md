@@ -74,7 +74,7 @@ The portable [assistant context](docs/assistant-AGENTS.md) assumes no particular
 ```sh
 python3 scripts/package.py
 cd dist
-sha256sum -c agent-chat-0.5.0.tar.gz.sha256
+sha256sum -c agent-chat-0.6.0.tar.gz.sha256
 ```
 
 The builder uses the explicit [release file allowlist](PACKAGE-FILES.txt), normalizes archive metadata, and emits a reproducible `.tar.gz` plus SHA-256 checksum. It excludes local conversation/handoff records and implementation notes as well as runtime state. It does not publish or commit anything. Copy the archive and checksum to the target laptop, then follow the included installation guide.
@@ -89,9 +89,16 @@ lua tests/test_attachment_runner.lua "$PWD"
 lua tests/test_conversations.lua "$PWD"
 lua tests/test_notifications.lua "$PWD"
 lua tests/test_preferences.lua "$PWD"
+lua tests/test_jobs.lua "$PWD"
+lua tests/test_connection.lua "$PWD"
+lua tests/test_activity.lua "$PWD"
+lua tests/test_service.lua "$PWD"
 noctalia plugins lint plugin
 ```
 
 Fixtures use fake transports and never invoke provider inference. Packaging tests perform isolated install/update/uninstall and failure recovery in a temporary home. Daily-use validation passed on the development laptop; a second-laptop runtime test is still needed. Restart-during-work, outages, long-history performance and multi-monitor checks remain deferred.
 
 MIT licensed; see [LICENSE](LICENSE).
+
+
+The 0.6.0 candidate adds versioned/recoverable preference saves, supervised interactive helpers with liveness checks, navigation-aware dialog completion, independent connection/activity state, bounded reconnect attempts and restored-session admission gates. Corrupt or interrupted preference saves are preserved for explicit recovery; newer schemas remain read-only. Metadata diagnostics exclude backend error text. This development candidate awaits native joint validation before deployment/release packaging.

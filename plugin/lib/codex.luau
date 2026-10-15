@@ -1,25 +1,33 @@
 local C = require("./common.luau")
 local Conversations = require("./conversations.luau")
+local Connection = require("./connection.luau")
 local M = {}
 function M.new(cwd, changed)
     local s = C.state("codex")
     local A = { state = s }
+    local connection = Connection.new(noctalia.nowMs)
+    s.connection = connection.state
+    local historyGeneration = 0
     local endpoint, stream = nil, nil
-    local cursor, retryAt, gen = 0, 0, 0
+    local cursor, gen = 0, 0
     local messageIndex = {}
     local helperDir = noctalia.expandPath("~/.local/state/agent-chat/codex")
     local function publish() changed() end
     local function fail(err) s.error = tostring(err); publish() end
-    local function http(path, body, cb)
+    local function http(path, body, cb, deliverStale)
         if not endpoint then cb(nil, "Codex helper is not connected"); return end
+        local token = connection.token()
         C.http({ url = endpoint.url .. path, method = body and "POST" or "GET",
             headers = { "Content-Type: application/json", "Authorization: Bearer " .. endpoint.token },
-            body = body and C.json(body) or "" }, cb)
+            body = body and C.json(body) or "" }, function(r, err)
+                if connection.valid(token) then cb(r, err)
+                elseif deliverStale then cb(nil, "Connection changed; the request was not repeated. Check recovered history before retrying.") end
+            end)
     end
-    local function rpc(method, params, cb)
+    local function rpc(method, params, cb, deliverStale)
         http("/rpc", { method = method, params = params }, function(r, err)
             cb(r and r.result or nil, err)
-        end)
+        end, deliverStale or method == "turn/start" or method == "thread/start" or method == "turn/interrupt" or method == "thread/delete" or method == "thread/name/set")
     end
     local function project(item, full)
         item = item.item or item
@@ -66,10 +74,23 @@ function M.new(cwd, changed)
         s.requests = out
         if #out > 0 then s.status = "waiting" elseif s.busy then s.status = "working" else s.status = "idle" end
     end
-    local function syncPending()
+    local pendingGeneration = 0
+    local pendingWaiters = {}
+    local function syncPending(done)
+        pendingGeneration = pendingGeneration + 1
+        local pendingToken, currentGen = pendingGeneration, gen
+        local retained = {}
+        for _, waiter in ipairs(pendingWaiters) do if waiter.gen == gen then table.insert(retained, waiter) end end
+        pendingWaiters = retained
+        if done then table.insert(pendingWaiters, { gen = gen, done = done }) end
+        local function complete(ok)
+            local waiters = pendingWaiters; pendingWaiters = {}
+            for _, waiter in ipairs(waiters) do if waiter.gen == gen then waiter.done(ok) end end
+        end
         http("/pending", nil, function(r, err)
-            if not r then fail(err); return end
-            s.usage = r.usage or s.usage; pending(r.pending); publish()
+            if pendingToken ~= pendingGeneration or currentGen ~= gen then return end
+            if not r then fail(err); complete(false); return end
+            s.usage = r.usage or s.usage; pending(r.pending); publish(); complete(true)
         end)
     end
     local function event(e)
@@ -77,6 +98,7 @@ function M.new(cwd, changed)
         local p, method = e.params or {}, e.method
         if method == "bridge/usage" then s.usage = p; publish(); return end
         if method == "bridge/disconnected" then
+            connection.failure(connection.token(), true)
             s.connected = false; s.busy = false; s.status = "disconnected"
             s.error = "Codex stopped. Retry reconnects; your last prompt will not be resent."
             publish(); return
@@ -98,25 +120,34 @@ function M.new(cwd, changed)
         elseif method == "error" then s.error = C.text(p.error):sub(1, 500) end
         publish()
     end
-    local function listen()
+    local function listen(token)
         if stream then stream.stop() end
         stream = noctalia.httpStream({ url = endpoint.url .. "/events?after=" .. cursor,
             headers = { "Authorization: Bearer " .. endpoint.token } }, function(line)
-            if line:sub(1, 5) == "data:" then local e = C.decode(line:sub(6)); if e then event(e) end end
+            if connection.valid(token) and line:sub(1, 5) == "data:" then local e = C.decode(line:sub(6)); if e then event(e) end end
         end, function()
-            stream = nil; s.connected = false; retryAt = os.time() + 3; s.status = "disconnected"; publish()
+            if not connection.valid(token) then return end
+            connection.failure(token, true)
+            stream = nil; s.connected = false; s.status = "disconnected"; publish()
         end)
     end
-    function A.connect()
+    function A.connect(manual)
+        local token = connection.begin(manual ~= false)
+        if not token then return end
+        gen = gen + 1; s.connected = false; s.recoveryFailed = false; s.status = "connecting"
+        if stream then stream.stop(); stream = nil end
+        publish()
         local function attach()
+            if not connection.valid(token) then return end
             local raw = noctalia.readFile(helperDir .. "/endpoint.json")
             endpoint = raw and C.decode(raw)
             if not endpoint or endpoint.cwd ~= cwd or not (endpoint.url or ""):match("^http://127%.0%.0%.1:%d+$") then
-                s.status = "disconnected"; retryAt = os.time() + 2; return
+                s.connected = false; s.status = "disconnected"; connection.failure(token, true); fail("Codex helper is unavailable. Retry reconnects without resending messages."); return
             end
             http("/health", nil, function(r)
-                if not r then retryAt = os.time() + 2; return end
-                s.connected = true; s.status = "idle"; s.error = ""; listen(); A.discover()
+                if not r then connection.failure(token, true); s.status = "disconnected"; fail("Codex helper did not respond. Retry reconnects without resending messages."); return end
+                connection.success(token)
+                s.connected = true; s.status = "idle"; s.error = ""; listen(token); A.discover()
                 if s.session ~= "" then A.open(s.session) end
                 publish()
             end)
@@ -140,13 +171,21 @@ function M.new(cwd, changed)
         A.list("")
     end
     function A.list(search, page)
+        if not page then historyGeneration = historyGeneration + 1 end
+        local currentHistory = historyGeneration
         local params = { limit = 40, searchTerm = search or "" }
         if page then params.cursor = page end
         rpc("thread/list", params, function(r, err)
+            if currentHistory ~= historyGeneration then return end
             if not r then fail(err); return end
             if not page then s.sessions = {} end
+            local seen = {}
+            for _, session in ipairs(s.sessions) do seen[session.id] = true end
             for _, t in ipairs(r.data or {}) do
-                table.insert(s.sessions, { id = t.id, title = t.name or t.preview or "Untitled", updated = t.updatedAt })
+                if not seen[t.id] then
+                    table.insert(s.sessions, { id = t.id, title = t.name or t.preview or "Untitled", updated = t.updatedAt })
+                    seen[t.id] = true
+                end
             end
             s.historyCursor = r.nextCursor; publish()
         end)
@@ -164,31 +203,32 @@ function M.new(cwd, changed)
                     if row then table.insert(rows, row) end
                 end
                 callback(rows, r.nextCursor)
-            end)
+            end, true)
         end, done)
     end
-    function A.refresh(page)
+    function A.refresh(page, done)
         if s.session == "" then return end
         local id, currentGen = s.session, gen
         local params = { threadId = id, sortDirection = "desc", limit = 50 }
         if page then params.cursor = page end
         rpc("thread/items/list", params, function(r, err)
             if currentGen ~= gen then return end
-            if not r then fail(err); return end
+            if not r then fail(err); if done then done(false) end; return end
             local old = page and s.messages or {}
             s.messages = {}; messageIndex = {}
             for i = #(r.data or {}), 1, -1 do upsert(r.data[i]) end
             for _, m in ipairs(old) do if not messageIndex[m.id] then messageIndex[m.id] = m; table.insert(s.messages, m) end end
-            s.messageCursor = r.nextCursor; publish()
+            s.messageCursor = r.nextCursor; publish(); if done then done(true) end
         end)
     end
     function A.open(id)
         gen = gen + 1
+        s.recovering = true; s.recoveryFailed = false
         s.turn = nil; s.busy = false
         local currentGen = gen
         rpc("thread/resume", { threadId = id }, function(r, err)
             if currentGen ~= gen then return end
-            if not r then fail(err); return end
+            if not r then s.recoveryFailed = true; fail(err); return end
             s.session = id; s.model = r.model; s.effort = r.reasoningEffort
             s.title = r.thread.name or r.thread.preview or "Chat"
             s.messages = {}; messageIndex = {}; s.error = ""
@@ -199,11 +239,18 @@ function M.new(cwd, changed)
             local status = r.thread.status or {}
             s.busy = status.type == "active" or s.turn ~= nil
             s.status = s.busy and "working" or "idle"
-            A.refresh(); syncPending(); publish()
+            local remaining, healthy = 2, true
+            local function loaded(ok)
+                if currentGen ~= gen then return end
+                healthy = healthy and ok; remaining = remaining - 1
+                if remaining == 0 then s.recovering = not healthy; s.recoveryFailed = not healthy; publish() end
+            end
+            A.refresh(nil, loaded); syncPending(loaded); publish()
         end)
     end
     function A.new()
         gen = gen + 1
+        s.recovering = false; s.recoveryFailed = false
         s.session = ""; s.turn = nil; s.busy = false; s.messages = {}; messageIndex = {}; s.requests = {}
         s.title = "New chat"; s.error = ""; s.status = s.connected and "idle" or "disconnected"; publish()
     end
@@ -235,33 +282,49 @@ function M.new(cwd, changed)
         end)
     end
     function A.stop()
-        if not s.turn then fail("No active turn ID. Retry to recover state before stopping."); return end
-        rpc("turn/interrupt", { threadId = s.session, turnId = s.turn }, function(_, err) if err then fail(err) end end)
+        if not s.turn then s.stopping = false; fail("No active turn ID. Retry to recover state before stopping."); return end
+        rpc("turn/interrupt", { threadId = s.session, turnId = s.turn }, function(_, err) if err then s.stopping = false; fail(err) end end)
     end
     function A.rename(title)
-        rpc("thread/name/set", { threadId = s.session, name = title }, function(_, err)
+        local id, version = s.session, gen
+        rpc("thread/name/set", { threadId = id, name = title }, function(_, err)
+            if id ~= s.session or version ~= gen then if not err then A.list("") end; return end
             if err then fail(err) else s.title = title; A.list(""); publish() end
         end)
     end
     function A.delete(done)
         if s.busy then fail("Stop the active turn before deleting"); return end
-        rpc("thread/delete", { threadId = s.session }, function(_, err)
-            if err then fail(err) else if done then done() end; A.new(); A.list("") end
+        local id, version = s.session, gen
+        rpc("thread/delete", { threadId = id }, function(_, err)
+            if err then if id == s.session and version == gen then fail(err) end; return end
+            if done then done() end
+            if id == s.session and version == gen then A.new() end
+            A.list("")
         end)
     end
-    function A.reply(req, value)
+    function A.reply(req, value, done)
+        local id, version = s.session, gen
         local result
         if req.kind == "permission" then result = { decision = value }
         elseif req.kind == "additional_permissions" or req.kind == "elicitation" then result = value
         else result = { answers = value } end
         http("/reply", { id = req.id, result = result }, function(_, err)
-            if err then fail(err) else syncPending() end
-        end)
+            if id == s.session and version == gen then
+                if err then fail(err) else syncPending() end
+            end
+            if done then done(err == nil) end
+        end, true)
     end
     function A.tick()
-        if not s.connected and retryAt > 0 and os.time() >= retryAt then retryAt = os.time() + 10; A.connect() end
+        if connection.expired() then
+            local token = connection.token(); connection.failure(token, true)
+            gen = gen + 1; s.connected = false; s.status = "disconnected"
+            fail("Connection timed out. Retry reconnects without resending messages.")
+        end
+        if connection.due() then A.connect(false) end
     end
     function A.close(reason)
+        connection.close()
         if stream then stream.stop() end
         if reason == "disable" or reason == "uninstall" then
             noctalia.runAsync({ "python3", noctalia.pluginDir() .. "/helper/codex_bridge.py", "stop",

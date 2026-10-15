@@ -1,0 +1,13 @@
+local observe = assert(loadfile(assert(arg[1]) .. '/plugin/lib/activity.luau'))().new()
+local s = { session = 'a', connected = true, busy = false, requests = {}, error = '' }
+assert(observe('codex', s, false) == 'idle')
+assert(observe('codex', s, true) == 'submitting')
+s.busy = true; assert(observe('codex', s, false) == 'running')
+s.connected = false; assert(observe('codex', s, false) == 'interrupted')
+s.connected = true; s.recovering = true; assert(observe('codex', s, false) == 'recovering')
+s.recovering = false; s.requests = { {} }; assert(observe('codex', s, false) == 'waiting')
+s.stopping = true; assert(observe('codex', s, false) == 'stopping')
+s.requests = {}; s.busy = false; assert(observe('codex', s, false) == 'completed' and not s.stopping)
+s.usage = { blocked = true }; assert(observe('codex', s, false) == 'usage-paused')
+s.session = 'b'; s.usage = {}; assert(observe('codex', s, false) == 'idle')
+print('Independent connection/activity state and interruption semantics: passed')
