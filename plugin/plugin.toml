@@ -1,6 +1,6 @@
 id = "local/agent-chat"
 name = "Agent Chat"
-version = "0.7.0"
+version = "0.8.0"
 plugin_api = 27
 author = "local"
 license = "MIT"

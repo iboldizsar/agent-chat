@@ -33,6 +33,8 @@ Fresh installations open a setup screen that checks tools from Noctalia’s envi
 - The model picker groups favorites and up to five recent explicit choices per backend. Unavailable favorites remain visible and removable; models are never silently substituted.
 - Enter sends, Shift+Enter adds a newline, Esc hides chat without stopping work. Stop cancels the current response.
 - History supports title search, resume, rename, deletion and per-backend pins. Backend-owned conversations are not silently migrated.
+- Attachment cards show names, sizes and file types. Supported images have thumbnails and an in-panel preview; Remove keeps the unsent draft. Screenshot capture explains Copy and close before opening Noctalia’s tools.
+- History groups pinned chats and local dates, with All/Pinned filters and title-only search.
 - Images and files use a private retained attachment cache. Image capability is checked before sending. Codex non-image files are local tool references rather than generic binary uploads.
 - File selection and Save As temporarily hide chat to release keyboard focus, then restore the same layout after selection/cancellation.
 - The screenshot button uses Noctalia's region capture and annotation tools. Choose Copy and close capture tools to attach the result. Automatic screenshot attachment currently uses Hyprland layer inspection. On another compositor, capture normally and use Paste image. For an unchanged/identical clipboard image, use Paste image explicitly.
@@ -77,7 +79,7 @@ The portable [assistant context](docs/assistant-AGENTS.md) assumes no particular
 ```sh
 python3 scripts/package.py
 cd dist
-sha256sum -c agent-chat-0.7.0.tar.gz.sha256
+sha256sum -c agent-chat-0.8.0.tar.gz.sha256
 ```
 
 The builder uses the explicit [release file allowlist](PACKAGE-FILES.txt), normalizes archive metadata, and emits a reproducible `.tar.gz` plus SHA-256 checksum. It excludes local conversation/handoff records and implementation notes as well as runtime state. It does not publish or commit anything. Copy the archive and checksum to the target laptop, then follow the included installation guide.
@@ -107,3 +109,6 @@ MIT licensed; see [LICENSE](LICENSE).
 
 
 The 0.6.0 candidate adds versioned/recoverable preference saves, supervised interactive helpers with liveness checks, navigation-aware dialog completion, independent connection/activity state, bounded reconnect attempts and restored-session admission gates. Corrupt or interrupted preference saves are preserved for explicit recovery; newer schemas remain read-only. Metadata diagnostics exclude backend error text. The 0.6.0 checklist was accepted by user confirmation. The 0.7.0 candidate adds first-run setup, runtime dependency guidance, Codex sign-in status and favorite/recent model selection; the installed 0.7.0 candidate was accepted by the user.
+
+
+The 0.8.0 candidate adds attachment previews/capture feedback and grouped history with guarded pagination. Failed saved-chat opens preserve the current draft. Implementation checks pass; hands-on preview/capture/history acceptance remains pending.

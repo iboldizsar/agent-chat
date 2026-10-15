@@ -229,3 +229,17 @@ for _, backend in ipairs({ 'codex', 'opencode' }) do
     assert(not adapter.state.historyLoading and adapter.state.historyError and #adapter.state.sessions == 0)
 end
 print('Both adapters expose loading/errors, normalize dates and bound duplicate pagination: passed')
+
+for _, backend in ipairs({ 'codex', 'opencode' }) do
+    queue = {}
+    local adapter = backend == 'codex' and cold or o
+    adapter.state.session = 'keep'; adapter.state.draft = 'keep draft'
+    local outcome
+    adapter.open('missing-pin', function(ok) outcome = ok end)
+    if backend == 'codex' then
+        respond(function(r) return fixtures[r.body] and fixtures[r.body].method == 'thread/resume' end, { error = 'Conversation unavailable' }, 400)
+    else path('/api/session/missing-pin', { error = 'Not found' }, 404) end
+    assert(outcome == false and adapter.state.session == 'keep' and adapter.state.draft == 'keep draft')
+    assert(not adapter.state.recovering and adapter.state.openFailures['missing-pin'])
+end
+print('Unavailable pins do not strand the current conversation or replace its draft: passed')

@@ -2,7 +2,7 @@
 
 Branch: `milestone/0.8.0`  
 Baseline: accepted 0.7.0 merged into main  
-Status: first implementation slice complete; native validation and final polish pending
+Status: implementation complete; 0.8.0 installed for hands-on validation
 
 ## Implemented in source
 
@@ -25,12 +25,31 @@ All 35 Python tests and 12 Lua suites pass. Fixtures cover screenshot cancellati
 
 No provider inference, local deployment, private-state changes, desktop configuration changes or archive rebuild in this slice. Source manifest and installed plugin remain 0.7.0 until candidate staging.
 
-## Remaining work
+## Final implementation and native preflight
 
-- Inspect the installed host for a more direct screenshot completion signal before finalizing the current compositor-based fallback.
-- Refine screenshot availability/fallback feedback for missing clipboard tools or unsupported desktops.
-- Native checks for image decoding/layout, long names/multiple attachments, local date groups, picker/capture focus and pagination scroll preservation. Fixture rendering cannot prove native geometry or scroll behavior.
-- Validate missing/invalid/oversize image inputs and history pins whose backend conversation was removed externally; retain drafts and avoid destructive assumptions.
-- Update version and build/stage the candidate after implementation checks; obtain user acceptance of the new behavior.
+- No screenshot completion callback is exposed in the inspected host runtime API. Keep the existing Hyprland overlay/clipboard observer; do not add another capture stack.
+- Capture checks required tools before opening an overlay; instructions disable automatic capture when required executables are absent. Paste image remains available.
+- Validate common raster signatures before caching; other image formats remain local file references. PNG preview dimensions are bounded at 32 megapixels. Signature checks are not a full image decoder/integrity guarantee.
+- Bounded file reads, missing/oversize/invalid-file fixtures and pre-send file metadata checks preserve the draft on error.
+- Opening a chat now restores its draft only after the backend confirms the target. Failed pin lookups preserve the current chat, draft and attachments, leave Unpin available, and do not strand a different idle chat behind recovery gates.
+- Candidate manifest/helper metadata updated to 0.8.0; portable archive and checksum built and verified. OpenCode connected and Codex discovered seven models with sign-in ready; restored OpenCode afterward. Both native layouts report successful rendering, configuration/lint pass, preferences remain writable and the original selections/drafts/pins/export folder/favorites/setup state compare unchanged with a private backup.
+- All 39 Python tests and 12 Lua suites pass. No provider prompt, desktop restart or global configuration edit.
+
+Private backups: previous payload `~/.local/state/agent-chat/install-backups/20261015T091912168375Z/plugin/`; pre-update preferences `~/.local/state/agent-chat/install-backups/validate-0.8.0-20261015T091911Z/preferences.json`. Preserve these outside Git/releases.
+
+Reported usage: 72% five-hour / 11% weekly during staging, below the 85% guard. No inference tests were run.
+
+## Hands-on acceptance remaining
+
+1. Attach an image: check thumbnail, name/size, larger preview, Back and Remove in both layouts. Try a text-only model and confirm the compatibility hint retains the draft.
+2. Attach a file with a long/Unicode name; check type/size and removal. Missing/invalid/oversize cases have isolated fixtures.
+3. Start a screenshot, choose Copy and close annotation; verify attachment and focus return. Cancel a second capture and confirm no stale image is attached.
+4. Open history: check date groups, All/Pinned and title search. Load more pages if available and confirm scroll stays usable. A missing saved pin should show an opening error and remain removable without losing the current draft.
+
+Native geometry, image decoding and scroll behavior require this hands-on acceptance; metadata rendering checks do not prove them. Fresh-install/second-laptop/restart/outage gates remain separately tracked for 1.0.
+
+## Rollback
+
+Finish/Stop active work, disable the plugin, restore the previous owned payload backup, and enable it again. Preserve current private preferences and assistant context; do not overwrite new drafts with the pre-update copy. Schema remains 1.
 
 Keep the accepted header/options design, existing screenshot stack, panel-local shortcuts, per-backend histories, usage guard and private retained attachments. No automatic attachment garbage collection or new global keybindings.

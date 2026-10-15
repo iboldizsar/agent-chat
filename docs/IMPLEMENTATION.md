@@ -207,3 +207,10 @@ Physical dialogs, generation/Stop, keyboard and permissions under 0.6.0 still ne
 Implemented and staged the setup/selection milestone on milestone/0.7.0. Fresh installs receive a bounded metadata-only runtime check, backend connection/model selection and optional-tool guidance. Existing preferences skip onboarding and preserve choices; Chat options can reopen setup. Codex account status is sanitized through the existing helper. Favorite models and five recent explicit selections persist independently per backend, with unavailable favorites removable. Service validates model/effort changes and active-work constraints.
 
 34 Python tests, 12 Lua suites, syntax/lint/config checks pass. Native runtime checks found both installed backends, preserved preferences, rendered both layouts and confirmed Codex sign-in/seven models without prompts. Restored OpenCode and centered chat. See docs/MILESTONE-0.7.0.md for backups and remaining physical UI acceptance; no new restart/outage checks were performed.
+
+
+## Milestone 0.8.0 candidate — 2026-10-15
+
+Finished and staged attachment previews, file metadata, screenshot instructions/fallback feedback and local-date history groups/filters. Added bounded input/signature checks and pre-send file metadata checks. Fixed draft loss when an asynchronous saved-chat open fails: restore the target draft only after confirmed metadata, and preserve the original idle chat on a missing pin. History has loading/error/no-match states, stable page scroll identity and bounded deduplicated pagination.
+
+39 Python tests and 12 Lua suites pass; native version/rendering/config/preference-preservation preflight passed. Installed candidate 0.8.0; user acceptance remains pending. Source docs/MILESTONE-0.8.0.md records backup paths and the physical checklist. No provider inference, desktop restart, unrelated configuration edits or merge.

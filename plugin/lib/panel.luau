@@ -295,7 +295,10 @@ render = function()
                 { maxLines = 4, color = "on_surface_variant" }),
             label("If you cancel or copy an identical image, nothing new is attached. Paste image is available afterward. Maximum attachment size: 8 MiB.",
                 { maxLines = 4, fontSize = 12, color = "on_surface_variant" }),
-            button("Start capture", function() view = "chat"; attachFile("screenshot", true) end, { key = "start-capture", variant = "primary" }),
+            label("Automatic capture needs Hyprland and wl-clipboard. Other desktops can capture normally and use Paste image.",
+                { maxLines = 3, fontSize = 12, color = "on_surface_variant" }),
+            button("Start capture", function() view = "chat"; attachFile("screenshot", true) end,
+                { key = "start-capture", variant = "primary", enabled = not noctalia.commandExists or (noctalia.commandExists("hyprctl") and noctalia.commandExists("wl-paste")) }),
             button("Back to chat", function() view = "chat"; render() end),
         }))
     elseif view == "setup" then
@@ -614,7 +617,7 @@ render = function()
                         table.insert(history, ui.row({ gap = 2, align = "center" }, {
                             button(session.title:sub(1, 42), function() command("open", session.id); armedDelete = false end,
                                 { key = session.id, selected = session.id == s.session, enabled = idle, contentAlign = "start", flexGrow = 1,
-                                    tooltip = session.unverified and "Saved pin outside loaded history. Open to check availability." or session.title }),
+                                    tooltip = (s.openFailures or {})[session.id] and "Could not open this chat. Check the service and retry, or unpin it." or (session.unverified and "Saved pin outside loaded history. Open to check availability." or session.title) }),
                             icon("pin", session.pinned and "Unpin chat" or "Pin chat", function() command("pin", session.id) end,
                                 { selected = session.pinned == true }),
                         }))

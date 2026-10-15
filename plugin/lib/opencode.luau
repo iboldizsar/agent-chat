@@ -248,18 +248,28 @@ function M.new(cwd, changed)
             done(); complete(r ~= nil)
         end)
     end
-    function A.open(id)
+    function A.open(id, done)
         generation = generation + 1
         refreshing = false; s.recovering = true; s.recoveryFailed = false
         local gen = generation
         request("GET", "/api/session/" .. C.encode(id), nil, function(r, err)
             if gen ~= generation then return end
-            if not r then s.recoveryFailed = true; fail(err); return end
-            if (r.data.location or {}).directory ~= cwd then s.recoveryFailed = true; fail("Conversation is outside assistant directory"); return end
+            if not r then
+                s.openFailures = s.openFailures or {}; s.openFailures[id] = true
+                -- A failed lookup of a different chat does not invalidate the idle chat.
+                s.recovering = id == s.session; s.recoveryFailed = id == s.session
+                fail(err); if done then done(false) end; return
+            end
+            if (r.data.location or {}).directory ~= cwd then
+                s.recovering = id == s.session; s.recoveryFailed = id == s.session
+                fail("Conversation is outside assistant directory"); if done then done(false) end; return
+            end
             s.session = id; s.title = r.data.title or "Chat"; s.agent = r.data.agent or s.agent
             local m = r.data.model
             if m then s.model = m.providerID .. "/" .. m.id end
+            s.openFailures = s.openFailures or {}; s.openFailures[id] = nil
             s.messages = {}; s.error = ""
+            if done then done(true) end
             A.refresh(nil, function(ok)
                 if gen ~= generation then return end
                 s.recovering = not ok; s.recoveryFailed = not ok; publish()

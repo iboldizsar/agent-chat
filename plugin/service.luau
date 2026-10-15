@@ -158,9 +158,17 @@ handle = function(req)
         if s.busy or s.recovering or #s.requests > 0 or sending then s.error = "Stop or finish this conversation before opening another on this backend."; changed(); return end
         navigation = navigation + 1
         prefs.drafts[key(s)] = s.draft
-        if action == "new" then a.new() else a.open(req.value) end
-        s.draft = action == "new" and (prefs.drafts[s.backend .. ":new"] or "") or (prefs.drafts[s.backend .. ":" .. req.value] or "")
-        s.attachments = {}; s.attachmentNotice = nil
+        if action == "new" then
+            a.new(); s.draft = prefs.drafts[s.backend .. ":new"] or ""
+            s.attachments = {}; s.attachmentNotice = nil
+        else
+            local target, owner = req.value, s.backend
+            a.open(target, function(ok)
+                if not ok or s.session ~= target then return end
+                s.draft = prefs.drafts[owner .. ":" .. target] or ""
+                s.attachments = {}; s.attachmentNotice = nil; changed()
+            end)
+        end
     elseif action == "pin" then
         local id = req.value
         if type(id) ~= "string" or id == "" then return end
@@ -292,6 +300,9 @@ handle = function(req)
         local hasImage = false
         for _, m in ipairs(model.modalities or {}) do if m == "image" then hasImage = true end end
         for _, f in ipairs(s.attachments) do
+            local info = noctalia.fileInfo(f.path)
+            if not info or info.isDir then s.error = "An attachment is missing. Remove it or attach it again; your draft is retained."; changed(); return end
+            if info.size > 8 * 1024 * 1024 then s.error = "An attachment exceeds 8 MiB. Remove it before sending; your draft is retained."; changed(); return end
             if f.image and not hasImage then s.error = "This model does not accept images"; changed(); return end
         end
         local sourceDraftKey = key(s)
@@ -356,7 +367,8 @@ function onIpc(event, payload)
     for name, a in pairs(adapters) do
         local s = a.state
         result[name] = { connected = s.connected, status = s.status, models = #s.models,
-            agents = #s.agents, messages = #s.messages, requests = #s.requests,
+            agents = #s.agents, messages = #s.messages, requests = #s.requests, attachments = #s.attachments,
+            historyLoading = s.historyLoading == true, historyFailed = s.historyError ~= nil, sessions = #s.sessions,
             connectionPhase = s.connection and s.connection.phase, retryAttempt = s.connection and s.connection.attempt,
             activity = s.activity, authentication = s.authentication, recovering = s.recovering == true, recoveryFailed = s.recoveryFailed == true, hasError = (s.error or "") ~= "" }
     end

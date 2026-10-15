@@ -251,17 +251,24 @@ function M.new(cwd, changed)
             s.messageCursor = r.nextCursor; publish(); if done then done(true) end
         end)
     end
-    function A.open(id)
+    function A.open(id, done)
         gen = gen + 1
         s.recovering = true; s.recoveryFailed = false
         s.turn = nil; s.busy = false
         local currentGen = gen
         rpc("thread/resume", { threadId = id }, function(r, err)
             if currentGen ~= gen then return end
-            if not r then s.recoveryFailed = true; fail(err); return end
+            if not r then
+                s.openFailures = s.openFailures or {}; s.openFailures[id] = true
+                -- A failed lookup of a different chat does not invalidate the idle chat.
+                s.recovering = id == s.session; s.recoveryFailed = id == s.session
+                fail(err); if done then done(false) end; return
+            end
             s.session = id; s.model = r.model; s.effort = r.reasoningEffort
             s.title = r.thread.name or r.thread.preview or "Chat"
+            s.openFailures = s.openFailures or {}; s.openFailures[id] = nil
             s.messages = {}; messageIndex = {}; s.error = ""
+            if done then done(true) end
             for _, turn in ipairs(r.thread.turns or {}) do
                 for _, item in ipairs(turn.items or {}) do upsert(item) end
                 if turn.status == "inProgress" then s.turn = turn.id; s.busy = true end

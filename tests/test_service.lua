@@ -5,6 +5,7 @@ local function clone(value)
     local out = {}; for k, v in pairs(value) do out[k] = clone(v) end; return out
 end
 local api, watch, snapshot, captureDone, exportDone, saveDone = {}, nil, nil, nil, nil, nil
+local openDone
 local runtimeDone
 local states, replyCount, replyDone, opens = {}, 0, nil, 0
 api.json = { encode = function(value) serial = serial + 1; local id = 'j' .. serial; encoded[id] = clone(value); return id end,
@@ -20,6 +21,7 @@ api.writeFile = function(path, value) files[path] = value; return true end
 api.renameFile = function(from, to) files[to] = files[from]; files[from] = nil; return true end
 api.removeFile = function(path) files[path] = nil; return true end
 api.fileExists = function(path) return path == '/assistant/AGENTS.md' or files[path] ~= nil end
+api.fileInfo = function(path) return path ~= "/missing" and { size = path == "/oversize" and 9000000 or 12, isDir = false } or nil end
 api.mkdirAll = function() return true end
 api.setUpdateInterval = function() end
 api.runAsync = function(argv, cb)
@@ -36,7 +38,10 @@ local function adapter(name)
     states[name] = s
     return { state = s, connect = function() s.connected = true end, tick = function() end,
         export = function(cb) exportDone = cb end, close = function() end,
-        open = function(id) s.session = id end, new = function() s.session = '' end,
+        open = function(id, cb)
+            s.recovering = true
+            openDone = function(ok) if ok then s.session = id end; s.recovering = false; if cb then cb(ok) end end
+        end, new = function() s.session = '' end,
         reply = function(_, _, cb) replyCount = replyCount + 1; replyDone = cb end }
 end
 env.require = function(relative)
@@ -152,3 +157,22 @@ for _, case in ipairs({
     end
 end
 print('Fresh single/dual/missing backend setup, cancellation and existing-install preservation: passed')
+
+files = {}; cache = {}; runtimeDone = nil
+files['/private/preferences.json'] = api.json.encode({ backend = 'opencode', selections = { opencode = { session = 'original', model = 'm' } },
+    drafts = { ['opencode:original'] = 'keep original', ['opencode:target'] = 'target draft' } })
+assert(loadfile(root .. '/plugin/service.luau', 't', env))()
+states.opencode.models = { { key = 'm', label = 'Model' } }
+action('open', 'missing')
+assert(states.opencode.draft == 'keep original')
+assert(api.json.decode(files['/private/preferences.json']).drafts['opencode:original'] == 'keep original')
+openDone(false); tick()
+assert(states.opencode.draft == 'keep original' and states.opencode.session == 'original')
+action('open', 'target'); openDone(true); tick()
+assert(states.opencode.draft == 'target draft' and states.opencode.session == 'target')
+assert(api.json.decode(files['/private/preferences.json']).drafts['opencode:original'] == 'keep original')
+states.opencode.attachments = { { path = '/missing' } }
+action('send'); assert(states.opencode.error:find('missing') and states.opencode.draft == 'target draft')
+states.opencode.attachments = { { path = '/oversize' } }
+action('send'); assert(states.opencode.error:find('8 MiB') and states.opencode.draft == 'target draft')
+print('Failed pin lookup and missing/oversize attachments preserve the original draft: passed')
