@@ -384,3 +384,8 @@ The user questioned API 27 versus 33. Verified latest release 5.2.1, matching ru
 Applied migration while both backends were idle: copied old private state without deleting caches, installed/enabled the public ID, migrated settings/placements and changed only the existing Super+/ command in the controlling Stow Lua binding. Private comparisons confirm all other settings/binding content and drafts/pins/favorites/selections/export folder/setup retained. Both native layouts render, config validates, and Hyprland reports no errors. Codex discovers seven models and one saved chat; OpenCode discovers 99 models. Restored Codex. Full private backup: ~/.local/state/agent-chat/install-backups/public-id-20261015T115006Z/; installer backup: 20261015T115007015287Z; settings backup: identity-settings-20261015T115014610259Z. Never commit private backups.
 
 56 Python tests and 14 Lua suites pass. Upstream community validator against dist/community-0.9.0-api32 reports only missing thumbnail. Prepared docs/SUBMISSION-PR.md as a draft; the actual generator-produced 960×540 asset and physical candidate focus/usage/migration acceptance remain pending. Built the 0.9.0 archive/checksum. No model prompts, desktop restart, PR, push or merge. Codex usage options are left open for review.
+
+
+## Milestone 0.9.0 runtime accepted — 2026-10-15
+
+User confirmed “looks good to me” after public-ID migration, launch controls and usage-refresh checks. Recorded installed 0.9.0 runtime acceptance. The community thumbnail and deferred 1.0 lifecycle/second-laptop/scaling gates remain open; acceptance is not a claim that those were executed. Branch remains milestone/0.9.0. No further tests, inference, installation, merge or push.

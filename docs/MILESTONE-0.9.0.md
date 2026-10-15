@@ -2,7 +2,7 @@
 
 Branch: `milestone/0.9.0`  
 Baseline: accepted 0.8.0 merged into main  
-Status: runtime implementation complete; public-ID 0.9.0 candidate installed, hands-on acceptance pending; submission thumbnail pending
+Status: runtime milestone complete; installed 0.9.0 accepted by the user on 2026-10-15; submission thumbnail pending
 
 ## Completed
 
@@ -44,13 +44,13 @@ The five-hour window reset before resuming. Work uses fixtures/read-only discove
 
 56 Python tests and 14 Lua suites pass, including migration/upgrade/settings conflicts, notification routing/deduplication, usage freshness and export failures. Syntax, manifest lint and configuration validation pass. The upstream community validator reports only missing `thumbnail.webp` in the staged payload; the real 960×540 generator thumbnail and screenshot evidence remain required before submission.
 
-Hands-on candidate checks:
+Hands-on acceptance checklist:
 
 1. Existing Super+/, bar and control-center tile open the public-ID plugin; settings/transparency remain as before.
 2. Chat options → Usage: timestamp/Refresh works; reopening both layouts and normal editing/local shortcuts work. Check Tab/Shift+Tab navigation and long-name clipping at your normal display scale.
 3. Image preview/remove, history refresh/pins and Save As still work. During an intended task, confirm notification Open chat and Stop behavior; no extra inference is needed just for this acceptance.
 
-Native focus traversal, screenshots and large/scaled layout behavior need user acceptance. Restart/outage, second-laptop and other deferred 1.0 gates remain open. No community PR or Git push was performed.
+The user accepted the installed candidate with “looks good to me” on 2026-10-15 after the launch-control and usage-refresh checklist. This records user acceptance without claiming new agent-run checks or comprehensive scaling/focus certification. The submission thumbnail, restart/outage, second-laptop and other deferred 1.0 gates remain open. No community PR or Git push was performed.
 
 ## Rollback
 
