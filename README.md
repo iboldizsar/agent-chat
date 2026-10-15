@@ -114,6 +114,6 @@ The 0.6.0 candidate adds versioned/recoverable preference saves, supervised inte
 The 0.8.0 candidate adds attachment previews/capture feedback and grouped history with guarded pagination. Failed saved-chat opens preserve the current draft. Implementation checks pass; the user accepted the installed preview/capture/history behavior.
 
 
-The 0.9.0 candidate uses the public ID `iboldizsar/agent-chat` and plugin API 32 (Noctalia 5.2.1 tested). It adds self-contained context setup, safe identity migration, durable approval-notification deduplication, deferred notification links and timestamped usage refresh. Existing local users must follow [the migration guide](docs/MIGRATION.md) before upgrading. Community submission preparation is documented [here](docs/SUBMISSION.md); a real thumbnail is still required.
+The 0.9.0 candidate uses the public ID `iboldizsar/agent-chat` and plugin API 32 (Noctalia 5.2.1 tested). It adds self-contained context setup, safe identity migration, durable approval-notification deduplication, deferred notification links and timestamped usage refresh. Existing local users must follow [the migration guide](docs/MIGRATION.md) before upgrading. Community submission preparation is documented [here](docs/SUBMISSION.md); the user-provided thumbnail is included.
 
 The user accepted the installed 0.9.0 runtime and public-ID migration. Community submission assets and deferred 1.0 validation remain separately tracked.

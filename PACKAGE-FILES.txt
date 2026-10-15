@@ -36,6 +36,7 @@ plugin/panel.luau
 plugin/plugin.toml
 plugin/service.luau
 plugin/shortcut.luau
+plugin/thumbnail.webp
 plugin/translations/en.json
 plugin/widget.luau
 scripts/community.py

@@ -138,6 +138,9 @@ class CommunityStagingTests(unittest.TestCase):
             self.assertTrue((target / 'helper/context.py').is_file())
             self.assertFalse((target / 'preferences.json').exists())
             self.assertEqual(installer.manifest()['id'], 'iboldizsar/agent-chat')
+            self.assertEqual((target / 'thumbnail.webp').read_bytes(), (ROOT / 'plugin/thumbnail.webp').read_bytes())
+            self.assertEqual(community.blockers(target), [])
+            (target / 'thumbnail.webp').unlink()
             self.assertEqual(community.blockers(target), ['Missing 960x540 thumbnail.webp from a real screenshot'])
             with self.assertRaises(ValueError):
                 community.stage(Path(directory) / 'review')

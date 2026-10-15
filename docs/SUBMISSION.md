@@ -12,7 +12,7 @@ python3 scripts/community.py --output-dir dist/community-review --author iboldiz
 
 This copies the explicit runtime allowlist under `agent-chat/`, rewrites the namespace in that copy, and reports partial structural blockers. It does not install or publish. Both the source and staged manifests require API 32, matching image tooltips and the latest released Noctalia 5.2.1. API 33 is unreleased. Staged code remains readable; no runtime logic is downloaded or generated.
 
-Remaining submission items include a real 960×540 thumbnail.webp, visual evidence, the final bumped milestone version, current upstream CI and user acceptance of the tested public-ID migration. Do not submit a development stage merely because its local structural check lists only a thumbnail blocker.
+The user-created 960×540 thumbnail.webp is included in the explicit allowlist. It shows the compact Activity interface and decodes as WebP (65,784 bytes). The runtime/public-ID migration was accepted by the user. Validate the final staged payload with current upstream checks and complete the draft PR attestations before submission; passing structural validation does not replace review or the remaining 1.0 runtime gates.
 
 ## Side-effect inventory for the eventual PR
 

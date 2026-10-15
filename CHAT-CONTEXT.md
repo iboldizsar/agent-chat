@@ -399,3 +399,8 @@ User requested Delete next to Pin in chat history. Implemented named inline conf
 ## Compact transcript activity — 2026-10-15
 
 User requested hiding raw command rows behind compact expandable Activity. Added presentation-only grouping for consecutive tool records and empty OpenCode assistant/tool messages, suppressing empty assistant placeholders. Codex metadata carries activity kind/status, including failed nonzero exits. Activity summaries show command/step counts and running/failure hints; approval/question forms stay visible outside groups. Backend history and Markdown export records are unchanged. Grouping, both-layout collapse/expand/approval visibility, adapter failure metadata and packaging checks pass; syntax/lint pass. Installed 0.9.2 while idle with previous payload backup 20261015T120753760109Z. No inference, history deletion, transcript mutation or push.
+
+
+## Thumbnail packaged — 2026-10-15
+
+User supplied updated plugin/thumbnail.webp and requested inclusion after visual review. Valid WebP, 960×540, 65,784 bytes, showing compact Activity. Added to PACKAGE-FILES.txt and updated packaging fixtures/submission notes. All 11 packaging tests pass; rebuilt 0.9.2 archive/checksum and dist/community-0.9.2-with-thumbnail/agent-chat. Upstream community validator passes completely. Verified checksum and exact thumbnail bytes in archive. No image editing, inference, runtime restart, PR or push.

@@ -2,7 +2,7 @@
 
 Branch: `milestone/0.9.0`  
 Baseline: accepted 0.8.0 merged into main  
-Status: runtime milestone complete; installed 0.9.0 accepted by the user on 2026-10-15; submission thumbnail pending
+Status: runtime milestone complete; installed 0.9.0 accepted by the user on 2026-10-15; submission thumbnail included
 
 ## Completed
 
@@ -50,8 +50,15 @@ Hands-on acceptance checklist:
 2. Chat options → Usage: timestamp/Refresh works; reopening both layouts and normal editing/local shortcuts work. Check Tab/Shift+Tab navigation and long-name clipping at your normal display scale.
 3. Image preview/remove, history refresh/pins and Save As still work. During an intended task, confirm notification Open chat and Stop behavior; no extra inference is needed just for this acceptance.
 
-The user accepted the installed candidate with “looks good to me” on 2026-10-15 after the launch-control and usage-refresh checklist. This records user acceptance without claiming new agent-run checks or comprehensive scaling/focus certification. The submission thumbnail, restart/outage, second-laptop and other deferred 1.0 gates remain open. No community PR or Git push was performed.
+The user accepted the installed candidate with “looks good to me” on 2026-10-15 after the launch-control and usage-refresh checklist. This records user acceptance without claiming new agent-run checks or comprehensive scaling/focus certification. The submission thumbnail is now included; restart/outage, second-laptop and other deferred 1.0 gates remain open. No community PR or Git push was performed.
 
 ## Rollback
 
 Finish/Stop active work. Disable the public plugin, restore the payload and settings/binding from the full private backup, reload configuration, and enable local/agent-chat. Preserve new public state before rollback; old state/cache was not deleted. Never overwrite new drafts blindly. See MIGRATION.md.
+
+
+## Submission asset included — 2026-10-15
+
+User provided and approved plugin/thumbnail.webp, then requested inclusion. Verified WebP decoding, 960×540 dimensions and 65,784-byte size. Added it to the release allowlist for both portable archive and community stage. The screenshot shows compact grouped Activity. Earlier missing-thumbnail reports above are superseded by the final validation below.
+
+Final asset validation: all 11 packaging tests pass; rebuilt 0.9.2 archive/checksum and dist/community-0.9.2-with-thumbnail/agent-chat. Upstream validator reports “Validated 1 plugin manifest(s).” Archive checksum and thumbnail byte identity verified. No publication or PR.

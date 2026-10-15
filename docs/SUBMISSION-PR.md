@@ -27,18 +27,18 @@ Private writes include preferences/recovery copies, drafts/pins/favorites, notif
 - **Noctalia version tested against:** 5.2.1
 - **Plugin API level:** 32
 
-Development candidate 0.9.0: 56 Python tests and 14 Lua suites pass; syntax/lint/config checks pass. Native preflight connects both backends, renders both layouts, and preserves private settings/state across local→public identity migration. Existing bar/control-center and Super+/ integration were migrated with private backups. New candidate hands-on acceptance, focus/scaling and deferred lifecycle/second-laptop checks remain open. No inference is needed for setup, migration or most tests. The current upstream validator reports missing thumbnail; this draft is not ready for submission yet.
+Development candidate 0.9.0: 56 Python tests and 14 Lua suites pass; syntax/lint/config checks pass. Native preflight connects both backends, renders both layouts, and preserves private settings/state across local→public identity migration. Existing bar/control-center and Super+/ integration were migrated with private backups. New candidate hands-on acceptance, focus/scaling and deferred lifecycle/second-laptop checks remain open. No inference is needed for setup, migration or most tests. The thumbnail is now included; final structural validation is recorded in the milestone notes. Complete the review attestations before submission.
 
 ## Screenshots / Videos
 
-Pending: real plugin screenshot and the generator-produced 960×540 thumbnail. Do not include private conversations or credentials.
+Included: user-created 960×540 thumbnail.webp showing the actual plugin with compact Activity. Add the repository image to the PR description when submitting.
 
 ## Checklist
 
 - [x] The directory name matches the part of `id` after the `/` in `plugin.toml` exactly.
-- [ ] It ships `plugin.toml`, `README.md`, `thumbnail.webp`, and `translations/en.json`.
+- [x] It ships `plugin.toml`, `README.md`, `thumbnail.webp`, and `translations/en.json`.
 - [x] `README.md` follows the README template, documents every entry/dependency, and includes exact panel IPC commands.
-- [ ] `thumbnail.webp` is present and relevant; generated with the official thumbnail generator.
+- [x] `thumbnail.webp` is present and relevant; user-provided generator artwork has been visually reviewed.
 - [x] `version` follows semver and is bumped; `plugin_api` is the oldest API level required (image tooltips require 32).
 - [x] Only the English translation source is included; no unreviewed translated locales.
 - [x] `catalog.toml` is unchanged.
