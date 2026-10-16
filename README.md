@@ -103,7 +103,7 @@ lua tests/test_setup.lua "$PWD"
 noctalia plugins lint plugin
 ```
 
-Fixtures use fake transports and never invoke provider inference. Packaging tests perform isolated install/update/uninstall and failure recovery in a temporary home. Daily-use validation passed on the development laptop; a second-laptop runtime test is still needed. Restart-during-work, outages, long-history performance and multi-monitor checks remain deferred.
+Fixtures use fake transports and never invoke provider inference. Packaging tests perform isolated install/update/uninstall and failure recovery in a temporary home. Daily-use validation passed on the development laptop; a second-laptop runtime test is still needed. The user verified restart during generation/approval and backend outage recovery on 2026-10-16, with no lost drafts or duplicate prompts. Long-history performance, keyboard/scaling and multi-monitor checks remain pending.
 
 MIT licensed; see [LICENSE](LICENSE).
 

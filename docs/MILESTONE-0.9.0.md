@@ -50,7 +50,7 @@ Hands-on acceptance checklist:
 2. Chat options → Usage: timestamp/Refresh works; reopening both layouts and normal editing/local shortcuts work. Check Tab/Shift+Tab navigation and long-name clipping at your normal display scale.
 3. Image preview/remove, history refresh/pins and Save As still work. During an intended task, confirm notification Open chat and Stop behavior; no extra inference is needed just for this acceptance.
 
-The user accepted the installed candidate with “looks good to me” on 2026-10-15 after the launch-control and usage-refresh checklist. This records user acceptance without claiming new agent-run checks or comprehensive scaling/focus certification. The submission thumbnail is now included; restart/outage, second-laptop and other deferred 1.0 gates remain open. No community PR or Git push was performed.
+The user accepted the installed candidate with “looks good to me” on 2026-10-15 after the launch-control and usage-refresh checklist. This records user acceptance without claiming new agent-run checks or comprehensive scaling/focus certification. The submission thumbnail is now included; restart/outage recovery was subsequently confirmed by the user on 2026-10-16; second-laptop and other deferred 1.0 gates remain open. No community PR or Git push was performed.
 
 ## Rollback
 

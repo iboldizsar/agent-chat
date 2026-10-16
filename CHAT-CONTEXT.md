@@ -404,3 +404,8 @@ User requested hiding raw command rows behind compact expandable Activity. Added
 ## Thumbnail packaged — 2026-10-15
 
 User supplied updated plugin/thumbnail.webp and requested inclusion after visual review. Valid WebP, 960×540, 65,784 bytes, showing compact Activity. Added to PACKAGE-FILES.txt and updated packaging fixtures/submission notes. All 11 packaging tests pass; rebuilt 0.9.2 archive/checksum and dist/community-0.9.2-with-thumbnail/agent-chat. Upstream community validator passes completely. Verified checksum and exact thumbnail bytes in archive. No image editing, inference, runtime restart, PR or push.
+
+
+## User-verified 1.0 recovery checks — 2026-10-16
+
+The user confirmed item 1 of the 1.0 checklist: restart during generation or a pending approval and backend outage/recovery, with no lost drafts or duplicate prompts. Record these checks as passed by user confirmation, not newly executed agent tests. Exact backend/version combinations and interruption procedures were not separately reported; do not infer reboot, standalone helper-kill, or second-laptop coverage. Second-laptop validation, long-chat/keyboard/scaling/multi-monitor checks and final 1.0 release preparation remain open.

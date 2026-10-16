@@ -6,6 +6,12 @@ Status: proposed implementation and release plan; planning only
 
 This plan defines the work from the current candidate to 1.0. It does not authorize implementation, installation, backend requests, desktop restarts, commits, or publication. The original `noctalia-agent-chat-plan.md` and implementation record remain historical context; this document defines the proposed 1.0 scope where they differ. Subsequent user decisions take precedence.
 
+
+
+## User-verified 1.0 recovery checks — 2026-10-16
+
+The user confirmed item 1 of the 1.0 checklist: restart during generation or a pending approval and backend outage/recovery, with no lost drafts or duplicate prompts. Record these checks as passed by user confirmation, not newly executed agent tests. Exact backend/version combinations and interruption procedures were not separately reported; do not infer reboot, standalone helper-kill, or second-laptop coverage. Second-laptop validation, long-chat/keyboard/scaling/multi-monitor checks and final 1.0 release preparation remain open.
+
 ## 1. Product goal
 
 Deliver a dependable native Noctalia desktop assistant for quick general questions and laptop assistance. Users should be able to install it, select their existing OpenCode or Codex setup, chat without losing work, attach useful context, and recover from an unavailable backend without duplicate prompts or unexplained states.
